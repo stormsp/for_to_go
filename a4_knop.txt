@@ -1,0 +1,146 @@
+; АГРС Белица 
+; Настагунин 02.2022
+; Управление кнопками
+; valTrack возращает 0 если val равен 0
+; или если с момента перехода val в состояние,
+; отличное от 0 не прошло timeout секунд.
+; В противном случае функция возвращает 1.
+;
+func valTrack(val,timeout,id)
+ if(eq(val,0))
+  aout[id]=0
+  return(0)
+ endif
+ ; aout[id] время перехода в состояние, отличное от 0
+ ; для вычисления тайм-аута (в тиках со старта зонда)
+ if(eq(aout[id],0))
+  aout[id]=getticks(0)
+ endif
+ if(ge(getticks(aout[id])*ticksize(),timeout))
+  return(1)
+ endif
+ return(0)
+endfunc
+;
+; front 0->1
+; src - дискр сигнал
+; previ - номер переменной слежения
+;
+func front(src,previ)
+  x=0
+  if (dost(src)&ne(src,dout[previ])&eq(src,1))
+    x=1
+  endif
+  dout[previ]=src
+  return(x)
+endfunc
+; переходы в режим по кнопкам или командам
+; vi_mode - номер перем режима грс (уст извне, 0-инф, 1-п.авт мест, 2-п.авт дист, 3-автомат)
+; evt - команда/кнопка
+; vi  - номер переменной слежения
+; v1,v2,v3 - значения режима грс, между которыми переход
+; kom_sys- команда с фрагмента для переключения мужду режимами v2 и v3
+func hev1(vi_mode,vi,evt,kom_sys,v1,v2,v3)   ;v1-инф v2-п.авт мест v3-п.авт дист
+  if (eq(front(evt,vi),1))		; нажата/подана
+    if (eq(dout[vi_mode],v1))
+      dout[vi_mode]=v2			; туды
+      set kom_sys,0   ; команду выставляем в мест
+    else
+      if (eq(dout[vi_mode],v2)|eq(dout[vi_mode],v3))
+        dout[vi_mode]=v1       		; сюды
+        set kom_sys,2   ; что бы спрятать команду с фрагмента
+      endif
+    endif
+  endif
+  if eq(dout[vi_mode],v2)|eq(dout[vi_mode],v3)
+    if eq(#[kom_sys],0) 
+      dout[vi_mode]=v2  ;п.авт мест
+    else 
+      if eq(#[kom_sys],1) 
+        dout[vi_mode]=v3  ;п.авт дист
+      endif
+    endif
+  endif
+  return(0)
+endfunc
+func hev2(vi_mode,vi,evt,kom_sys,v1,v2,v3)  ;v1-п.авт мест v2-п.авт дист v3-авт
+  if (eq(front(evt,vi),1))		; нажата/подана
+    if (eq(dout[vi_mode],v1)|eq(dout[vi_mode],v2))
+      dout[vi_mode]=v3			; туды
+      set kom_sys,2   ; что бы спрятать команду с фрагмента
+    else
+      if (eq(dout[vi_mode],v3))
+        dout[vi_mode]=v1       		; сюды
+        set kom_sys,0   ; команду выставляем в мест
+      endif
+    endif
+  endif
+  if eq(dout[vi_mode],v1)|eq(dout[vi_mode],v2)
+    if eq(#[kom_sys],0) 
+      dout[vi_mode]=v1  ;п.авт мест
+    else
+      if eq(#[kom_sys],1)   
+        dout[vi_mode]=v2  ;п.авт дист
+      endif
+    endif
+  endif
+  return(0)
+endfunc
+;
+; реакция на команды и кнопки перехода в режим
+; по кнопкам или командам 1 переходы 0-2-0
+; по кнопкам или командам 2 переходы 1-2-1
+; переходы 0-1-0 запрещены
+; cmd1,cmd2 - команды пользователя (упр извне вычислитель)
+; but1,but2 - кнопки смены режима (д.вх)
+; vi - начальный номер области переменных
+; vi+0 - номер перем режима грс (уст извне, 0-инф, 1-полуавт, 2-авт)
+; vi+1..vi+4 - слежение за ком-кнопками
+; vi+5, vi+6 - задержка при восст команд реж ту грс
+; vi+7, vi+8 - тела команд реж ту грс
+;
+func modes(vi,cmd1,cmd2,but1,but2,kom_sys)
+  x=hev1(vi+0,vi+1,cmd1,kom_sys,0,1,2)
+  x=hev1(vi+0,vi+2,but1,kom_sys,0,1,2)
+  x=hev2(vi+0,vi+3,cmd2,kom_sys,1,2,3)
+  x=hev2(vi+0,vi+4,but2,kom_sys,1,2,3)
+  
+  if (eq(valTrack(cmd1,2,vi+5),1))
+    dout[vi+7]=0
+  endif
+  if (eq(valTrack(cmd2,2,vi+6),1))
+    dout[vi+8]=0
+  endif
+  return(0)
+endfunc
+; переходы в режим по команде от алгоритма
+; vi_mode - номер перем режима грс (уст извне, 0-по месту, 1-пу, 2-арм)
+; cmd - команда, значение режима грс, куда надо перевести
+; vi  - номер переменной слежения
+; vi+1 - тело команды
+;
+func cmdmode_in(vi_mode,vi,cmd)
+  if (dost(cmd)&ne(cmd,dout[vi]))
+    dout[vi_mode]=cmd
+  endif
+  dout[vi]=cmd
+  return(0)
+endfunc
+func oninit(t) 
+  initouts 1,0,5
+  initouts 11,0,2
+  initouts 18,{АВТОЗАПУСКР},3
+  initouts 27,0,2
+  initouts 29,2,1
+  sleep(40)  ; ждем первого опроса модулей
+endfunc
+; реакция на команды и кнопки перехода в режим
+;
+x=modes(20,{КОМ РЕЖ1 ДЕС},{КОМ РЕЖ2 ДЕС},{КНОП РЕЖ1 ДЕС},{КНОП РЕЖ2 ДЕС},{КОМ М-Д ДЕС}[sys_num])
+x=cmdmode_in(20,18,{КОМ РЕЖ3 ДЕС})
+; режим неуправляемый, при изменениях сохраняем на диск
+;
+set {Автозапускр}[sys_num],{РЕЖИМ ГРС ДЕС}
+if ne({РЕЖИМ ГРС ДЕС},0)
+  dout[19]=dout[20]
+endif
