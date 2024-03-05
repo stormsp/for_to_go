@@ -18,14 +18,36 @@ func replaceAllStringRegexp(input, pattern, replace string) string {
 	return reg.ReplaceAllString(input, replace)
 }
 
+func replaceAllStringRegexpFunc(input, pattern string, repl func(string) string) string {
+	reg := regexp.MustCompile(pattern)
+	return reg.ReplaceAllStringFunc(input, repl)
+}
+
 func translate_for_to_go(code string) string {
 
 	// Перевод символов
 	code = strings.ReplaceAll(code, ";", "//")
 	code = strings.ReplaceAll(code, "&", " && ")
 	code = replaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
-	code = replaceAllStringRegexp(code, `(?i)(func[ \t]+)(\w+\s*\([^)]*\))\s*`, "func $2 { \n")
+	// Добавление "any" после каждой переменной в параметрах функции
+	code = replaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
+		// Извлекаем параметры из совпадения
+		paramsStart := len("func")
+		paramsEnd := len(match) - 1
+		params := match[paramsStart:paramsEnd]
 
+		// Разбиваем параметры по запятой и добавляем " any" после каждой переменной
+		paramArray := regexp.MustCompile(`\s*,\s*`).Split(params, -1)
+		for i, param := range paramArray {
+			paramArray[i] = strings.TrimSpace(param) + " any"
+		}
+
+		// Собираем обновленные параметры
+		updatedParams := strings.Join(paramArray, ", ") + ")"
+
+		// Возвращаем обновленный код
+		return "func " + updatedParams + " {\n\t"
+	})
 	//условия
 	code = replaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
 	code = replaceAllStringRegexp(code, `(?i)ELSE`, "} else {")

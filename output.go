@@ -12,8 +12,8 @@ import (
 // отличное от 0 не прошло timeout секунд.
 // В противном случае функция возвращает 1.
 //
-func valTrack(val,timeout,id) { 
-if (val == 0) {
+func valTrack(val any, timeout any, id) any) {
+	if (val == 0) {
   aout[id]=0
   return(0)
 }
@@ -32,23 +32,23 @@ if (val == 0) {
 // однако, в случае не успеха
 // производится дополнительные 2 попытки
 // достигнуть заданного сотояния
-func SET_ER03(SYS,VAL) { 
-if (DOST(#[SYS]) == 1) { // иначе нет связи с модулем 
+func SET_ER03(SYS any, VAL) any) {
+	if (DOST(#[SYS]) == 1) { // иначе нет связи с модулем 
     SET(SYS,  VAL
 }          
 RETURN(0)
 
 }
 
-func setwex(sys,state,timeout) { 
-if set_wait(sys,state,timeout) != 0 {
+func setwex(sys any, state any, timeout) any) {
+	if set_wait(sys,state,timeout) != 0 {
     time.Sleep((18) * time.Second)
     return(set_wait(sys,state,timeout))
 } 
   return(0)
 }
-func setex(sys,value) { 
-if (DOST(#[sys]) == 0) {
+func setex(sys any, value) any) {
+	if (DOST(#[sys]) == 0) {
   return(0)
 }
  SET(sys, value
@@ -57,8 +57,8 @@ if (DOST(#[sys]) == 0) {
 }
 // ту при условии достоверности
 //
-func setwex1(sys,value) { 
-if (DOST(#[sys]) == 0) {
+func setwex1(sys any, value) any) {
+	if (DOST(#[sys]) == 0) {
     return(0)
 }
   return(set_wait(sys,value,5))
@@ -68,23 +68,23 @@ if (DOST(#[sys]) == 0) {
 // если выявлены условия
 // работы алгоритма
 //
-func checkPrecondSt(dummy) { 
-x=0
+func checkPrecondSt(dummy) any) {
+	x=0
   x=x|{пожар ГРС ДЕС}|{1П СГ ЗАГ2 ДЕС}|{2П СГ ЗАГ2 ДЕС}|{3П СГ ЗАГ2 ДЕС}|{4П СГ ЗАГ2 ДЕС}
   x=x|{1Т СГ ЗАГ2 ДЕС}|{2Т СГ ЗАГ2 ДЕС}|{3Т СГ ЗАГ2 ДЕС}|{1О СГ ЗАГ2 ДЕС}|{2О СГ ЗАГ2 ДЕС}
   x=x|{1К СГ ЗАГ2 ДЕС}|{2К СГ ЗАГ2 ДЕС}|{КНОП АО ДЕС}|{АварЗакГРС ДЕС}
  return(x)
 }
-func checkPrecondBt(dummy) { 
-x=0
+func checkPrecondBt(dummy) any) {
+	x=0
   x=x|{РвыхВР АС ДЕС}|{Рвых НР ДЕС}|{Кноп АО ДЕС}
   x=x|{ЗакГРСбСТР ДЕС}|{пад РвхГРС ДЕС}|{Рвх НР ДЕС}
   x=x|{ОШИБ БП ДЕС}|({Рвых байп ДЕС} >= {ЗадPгВыхРабДЕС}*1.15)
  return(x)
 } 
 //
-func oninit(t) { 
-dout[1]=0	      // ход АО ст
+func oninit(t) any) {
+	dout[1]=0	      // ход АО ст
   dout[2]=0 	// ход АО бс
   aout[3]=0
   aout[4]=0
