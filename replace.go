@@ -104,9 +104,6 @@ func translate_for_to_go(code string) string {
 	//set
 	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),([^)]+)\s*\)?`, "SET($1, $2)\n")
 
-	//dost
-	code = replaceAllStringRegexp(code, `(?i)dost`, "DOST")
-
 	//sleep
 	code = replaceAllStringRegexp(code, `sleep\(([^)]+)\)`, `time.Sleep(($1) * time.Second)`)
 
