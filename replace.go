@@ -28,6 +28,7 @@ func translate_for_to_go(code string) string {
 	// Перевод символов
 	code = strings.ReplaceAll(code, ";", "//")
 	code = strings.ReplaceAll(code, "&", " && ")
+	code = replaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
 	code = replaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
 	// изменение func и добавление any после каждой переменной
 	code = replaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
@@ -52,7 +53,7 @@ func translate_for_to_go(code string) string {
 		updatedParams := strings.Join(paramArray, ", ")
 
 		// Возвращаем обновленный код
-		return "func " + updatedParams + " {\n\t"
+		return "func " + updatedParams + " any {\n\t"
 	})
 	code = replaceAllStringRegexp(code, `func\s+(\w+)\s*\(([^)]*)\)`, `func $1($2`)
 
@@ -132,8 +133,11 @@ func translate_for_to_go(code string) string {
 	//ticksize
 	code = replaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
-	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),([^)]+)\s*\)?`, "SET($1, $2)\n")
-
+	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
+	//set_wait доделать!
+	code = replaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
+	//return
+	code = replaceAllStringRegexp(code, `(?i)return`, "return")
 	//dost
 	code = replaceAllStringRegexp(code, `(?i)dost`, "DOST")
 
@@ -147,13 +151,11 @@ func main() {
 	code := `package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os/exec"
-	"regexp"
-	"strings"
 	"time"
 )
+
+var aout [100]any
+var dout [100]any
 	`
 
 	// Чтение данных из файла

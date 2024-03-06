@@ -52,7 +52,7 @@ func TICKSIZE() float64 {
 	return duration
 }
 
-func DOST(a int) int {
+func DOST(a any) any {
 	if a == a {
 		return 1
 	}
@@ -61,6 +61,11 @@ func DOST(a int) int {
 
 func SET(parameter any, value any) {
 	parameter = value
+}
+
+func SET_WAIT(parameter any, value any, timeout any) any {
+	parameter = value
+	return 0
 }
 
 func main() {
