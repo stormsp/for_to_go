@@ -4,13 +4,13 @@ import (
 	"time"
 )
 
-var aout [100]any
-var dout [100]any
+var aout [100]int
+var dout [100]int
 	// Аварийный останов
 // отличное от 0 не прошло timeout секунд.
 // В противном случае функция возвращает 1.
 //
-func valTrack(val any, timeout any, id int) any {
+func valTrack(val any, timeout int, id int) any {
 	if (val == 0) {
   aout[id]=0
   return(0)
@@ -72,7 +72,7 @@ func checkPrecondSt(dummy any) any {
   x=x|{1К СГ ЗАГ2 ДЕС}|{2К СГ ЗАГ2 ДЕС}|{КНОП АО ДЕС}|{АварЗакГРС ДЕС}
  return(x)
 }
-func checkPrecondBt(dummy any) any {
+func checkPrecondBt(x any) any {
 	x=0
   x=x|{РвыхВР АС ДЕС}|{Рвых НР ДЕС}|{Кноп АО ДЕС}
   x=x|{ЗакГРСбСТР ДЕС}|{пад РвхГРС ДЕС}|{Рвх НР ДЕС}

@@ -30,24 +30,24 @@ func SETBITS(dw uint32, cnt uint, shf uint, val uint32) uint32 {
 	return (dw &^ mask) | ((val&(1<<cnt) - 1) << shf)
 }
 
-func GETTICKS(prevTickCnt int64) int64 {
-	currentTickCnt := time.Now().UnixNano() / int64(time.Millisecond)
+func GETTICKS(prevTickCnt int) int {
+	currentTickCnt := int(time.Now().UnixNano() / int64(time.Millisecond))
 	if prevTickCnt != 0 {
 		return currentTickCnt - prevTickCnt
 	}
 	return currentTickCnt
 }
 
-func TICKSIZE() float64 {
+func TICKSIZE() int {
 	// Засекаем начальное время
 	startTime := time.Now()
 	// Засекаем конечное время после прошедшей одной секунды
 	time.Sleep(1 * time.Second)
 	endTime := time.Now()
-	// Рассчитываем разницу в секундах
-	duration := endTime.Sub(startTime).Seconds()
+	// Рассчитываем разницу в секундах и преобразуем её в int
+	duration := int(endTime.Sub(startTime).Seconds())
 	// Выводим разницу в секундах
-	fmt.Printf("TICKSIZE: %.6f seconds\n", duration)
+	fmt.Printf("TICKSIZE: %d seconds\n", duration)
 	// Возвращаем значение
 	return duration
 }

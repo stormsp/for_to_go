@@ -43,7 +43,7 @@ func translate_for_to_go(code string) string {
 			param = strings.TrimSpace(param)
 
 			// Добавляем проверку на "id" или "ID"
-			if strings.EqualFold(param, "id)") {
+			if strings.EqualFold(param, "id)") || strings.EqualFold(param, "timeout") {
 				paramArray[i] = param + " int"
 			} else {
 				paramArray[i] = param + " any"
@@ -164,8 +164,8 @@ import (
 	"time"
 )
 
-var aout [100]any
-var dout [100]any
+var aout [100]int
+var dout [100]int
 	`
 
 	// Чтение данных из файла
