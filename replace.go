@@ -142,6 +142,8 @@ func translate_for_to_go(code string) string {
 	code = replaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
 	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
+	code = replaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
+
 	//set_wait доделать!
 	code = replaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
 	//return
