@@ -40,7 +40,15 @@ func translate_for_to_go(code string) string {
 		// Разбиваем параметры по запятой и добавляем " any" после каждой переменной
 		paramArray := regexp.MustCompile(`\s*,\s*`).Split(params, -1)
 		for i, param := range paramArray {
-			paramArray[i] = strings.TrimSpace(param) + " any"
+			param = strings.TrimSpace(param)
+
+			// Добавляем проверку на "id" или "ID"
+			if strings.EqualFold(param, "id)") {
+				paramArray[i] = param + " int"
+			} else {
+				paramArray[i] = param + " any"
+			}
+			//paramArray[i] = strings.TrimSpace(param) + " any"
 		}
 
 		// Удаляем ")" перед последним "any"
@@ -133,7 +141,7 @@ func translate_for_to_go(code string) string {
 	//ticksize
 	code = replaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
-	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
+	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
 	//set_wait доделать!
 	code = replaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
 	//return

@@ -10,7 +10,7 @@ var dout [100]any
 // отличное от 0 не прошло timeout секунд.
 // В противном случае функция возвращает 1.
 //
-func valTrack(val any, timeout any, id any) any {
+func valTrack(val any, timeout any, id int) any {
 	if (val == 0) {
   aout[id]=0
   return(0)
@@ -32,7 +32,8 @@ func valTrack(val any, timeout any, id any) any {
 // достигнуть заданного сотояния
 func SET_ER03(SYS any, VAL any) any {
 	if (DOST(SYS) == 1) { // иначе нет связи с модулем
-    SET SYS, VAL
+    SET(SYS, VAL)
+
 }
 return(0)
 }
