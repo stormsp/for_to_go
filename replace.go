@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -25,13 +26,40 @@ func replaceAllStringRegexpFunc(input, pattern string, repl func(string) string)
 
 func translate_for_to_go(code string) string {
 
+	//добавляем func main() после последнего endfunc
+	var newCode string
+	// Найдем последнее вхождение "endfunc"
+	newCode = code
+	lastEndfuncIndex := strings.LastIndex(newCode, "endfunc")
+	if lastEndfuncIndex == -1 {
+		log.Fatal("Не удалось найти endfunc в коде")
+	}
+
+	// Код, который вы хотите добавить после последнего endfunc
+	additionalCode := `
+
+func main()
+`
+	// Вставим код после последнего endfunc
+	code = newCode[:lastEndfuncIndex+7] + additionalCode + newCode[lastEndfuncIndex+7:]
+
 	// Перевод символов
 	code = strings.ReplaceAll(code, ";", "//")
 	code = strings.ReplaceAll(code, "&", " && ")
 	code = replaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
 	code = replaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
+
 	// изменение func и добавление any после каждой переменной
 	code = replaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
+		// Извлекаем имя функции и параметры из совпадения
+		reg := regexp.MustCompile(`(?i)(func[ \t]+)(\w+)\s*\(([^)]*)\)`)
+		matches := reg.FindStringSubmatch(match)
+
+		// Если имя функции "main", пропускаем изменения
+		if strings.EqualFold(matches[2], "main") {
+			return "func main()) {\n"
+		}
+
 		// Извлекаем параметры из совпадения
 		paramsStart := len("func")
 		paramsEnd := len(match) - 1

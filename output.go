@@ -72,7 +72,7 @@ func checkPrecondSt(dummy any) any {
   x=x|{1К СГ ЗАГ2 ДЕС}|{2К СГ ЗАГ2 ДЕС}|{КНОП АО ДЕС}|{АварЗакГРС ДЕС}
  return(x)
 }
-func checkPrecondBt(x any) any {
+func checkPrecondBt(dummy any) any {
 	x=0
   x=x|{РвыхВР АС ДЕС}|{Рвых НР ДЕС}|{Кноп АО ДЕС}
   x=x|{ЗакГРСбСТР ДЕС}|{пад РвхГРС ДЕС}|{Рвх НР ДЕС}
@@ -90,6 +90,8 @@ func oninit(t any) any {
   aout[7]=0
   time.Sleep((5*18) * time.Second)	// ждем первого опроса модулей
 }
+
+func main() {
 // Аварийное Закрытие ГРС со стравливанием
 if checkPrecondSt(0) {
   if {РЕЖИМ ГРС ДЕС} != 0 && ({ХОД АО СТ ДЕС} == 0) && ({ХОД АО СТ ДЕС} == 0) && ({РЗР АО СТ ДЕС} == 0) {
