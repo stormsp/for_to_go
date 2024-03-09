@@ -4,15 +4,61 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"regexp"
 	"strings"
 	"time"
 )
 
+type Rep struct {
+	Value int
+}
+
+var Reps map[string]Rep
+
 var (
 	startTime      = time.Now()
 	ticksPerSecond = 1000
 )
+
+func findReps(text string) map[string]Rep {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+	matches := re.FindAllStringSubmatch(text, -1)
+
+	reps := make(map[string]Rep)
+
+	for _, match := range matches {
+		if len(match) > 1 {
+			rep := match[1]
+			// Убираем пробелы и символы табуляции в начале и конце строки
+			rep = regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(rep, "")
+
+			// Проверяем, был ли репер добавлен ранее
+			if _, found := reps[rep]; !found {
+				// Генерируем случайное значение 0 или 1
+				randomValue := rand.Intn(2)
+				reps[rep] = Rep{Value: randomValue}
+			}
+		}
+	}
+
+	return reps
+}
+
+func replaceExpressions(text string, reps map[string]Rep) string {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+
+	// Заменяем выражения в тексте
+	result := re.ReplaceAllStringFunc(text, func(match string) string {
+		repName := match[1 : len(match)-1] // Извлекаем имя репера из скобок
+		if _, found := reps[repName]; found {
+			return fmt.Sprintf("Reps[\"%s\"].Value", repName)
+		}
+		return match // Если репер не найден, оставляем выражение без изменений
+	})
+
+	return result
+}
 
 func replaceAllStringRegexp(input, pattern, replace string) string {
 	reg := regexp.MustCompile(pattern)
@@ -182,6 +228,10 @@ func main()
 	//sleep
 	code = replaceAllStringRegexp(code, `sleep\(([^)]+)\)`, `time.Sleep(($1) * time.Second)`)
 
+	//реперы
+	Reps = findReps(code)
+	code = replaceExpressions(code, Reps)
+
 	return code
 }
 
@@ -194,6 +244,8 @@ import (
 
 var aout [100]int
 var dout [100]int
+
+
 	`
 
 	// Чтение данных из файла
