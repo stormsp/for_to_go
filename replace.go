@@ -11,7 +11,8 @@ import (
 )
 
 type Rep struct {
-	Value int
+	sys_num int
+	Value   int
 }
 
 var Reps map[string]Rep
@@ -231,6 +232,7 @@ func main()
 	//реперы
 	Reps = findReps(code)
 	code = replaceExpressions(code, Reps)
+	code = replaceAllStringRegexp(code, `\.Value\[(.*?)\]`, `.$1`)
 
 	return code
 }
@@ -244,6 +246,7 @@ import (
 
 var aout [100]int
 var dout [100]int
+var x int
 
 
 	`
@@ -258,7 +261,7 @@ var dout [100]int
 	// Сохранение данных в переменной code
 	inputCode := string(fileContent)
 	outputCode := translate_for_to_go(inputCode)
-	codeFinal := code + outputCode
+	codeFinal := code + outputCode + "\n}"
 
 	// Запись данных в файл "output.go"
 	err = ioutil.WriteFile("output.go", []byte(codeFinal), 0644)
