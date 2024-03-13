@@ -34,7 +34,7 @@ func setwex(sys,state,timeout)
     sleep(18)
     return(set_wait(sys,state,timeout))
  endif
-  return(0)
+
 endfunc
 func setex(sys,value)
  if(eq(dost(#[sys]),0))

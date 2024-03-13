@@ -11,11 +11,11 @@
 //	Value int
 //}
 //
-//func replaceExpressions(text string, reps map[string]Rep) string {
+//function replaceExpressions(text string, reps map[string]Rep) string {
 //	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
 //
 //	// Заменяем выражения в тексте
-//	result := re.ReplaceAllStringFunc(text, func(match string) string {
+//	result := re.ReplaceAllStringFunc(text, function(match string) string {
 //		repName := match[1 : len(match)-1] // Извлекаем имя репера из скобок
 //		if rep, found := reps[repName]; found {
 //			return fmt.Sprintf("Reps[\"%s\"].Value", repName)
@@ -26,7 +26,7 @@
 //	return result
 //}
 //
-//func main() {
+//function main() {
 //	// Пример использования
 //	text := `
 //	// ... ваш текст ...

@@ -4,19 +4,76 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"regexp"
 	"strings"
 	"time"
 )
+
+type Rep struct {
+	sys_num int
+	Value   bool
+}
+
+var Reps map[string]Rep
 
 var (
 	startTime      = time.Now()
 	ticksPerSecond = 1000
 )
 
+func findReps(text string) map[string]Rep {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+	matches := re.FindAllStringSubmatch(text, -1)
+
+	reps := make(map[string]Rep)
+
+	for _, match := range matches {
+		if len(match) > 1 {
+			rep := match[1]
+			// Убираем пробелы и символы табуляции в начале и конце строки
+			rep = regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(rep, "")
+
+			// Проверяем, был ли репер добавлен ранее
+			if _, found := reps[rep]; !found {
+				// Генерируем случайное значение True или False
+				randomValue := rand.Intn(2) == 1
+				reps[rep] = Rep{Value: randomValue}
+			}
+		}
+	}
+
+	return reps
+}
+
+func replaceExpressions(text string, reps map[string]Rep) string {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+
+	// Заменяем выражения в тексте
+	result := re.ReplaceAllStringFunc(text, func(match string) string {
+		repName := match[1 : len(match)-1] // Извлекаем имя репера из скобок
+		if _, found := reps[repName]; found {
+			return fmt.Sprintf("Reps[\"%s\"].Value", repName)
+		}
+		return match // Если репер не найден, оставляем выражение без изменений
+	})
+
+	return result
+}
+
+func replaceAllStringRegexp(input, pattern, replace string) string {
+	reg := regexp.MustCompile(pattern)
+	return reg.ReplaceAllString(input, replace)
+}
+
+func replaceAllStringRegexpFunc(input, pattern string, repl func(string) string) string {
+	reg := regexp.MustCompile(pattern)
+	return reg.ReplaceAllStringFunc(input, repl)
+}
+
 func translate_for_to_go(code string) string {
 
-	//добавляем func main() после последнего endfunc
+	//добавляем function main() после последнего endfunc
 	var newCode string
 	// Найдем последнее вхождение "endfunc"
 	newCode = code
@@ -28,7 +85,7 @@ func translate_for_to_go(code string) string {
 	// Код, который вы хотите добавить после последнего endfunc
 	additionalCode := `
 
-func main()
+function main()
 `
 	// Вставим код после последнего endfunc
 	code = newCode[:lastEndfuncIndex+7] + additionalCode + newCode[lastEndfuncIndex+7:]
@@ -36,23 +93,23 @@ func main()
 	// Перевод символов
 	code = strings.ReplaceAll(code, ";", "//")
 	code = strings.ReplaceAll(code, "&", " && ")
-	code = strings.ReplaceAll(code, "|", " || ")
+	code = strings.ReplaceAll(code, "|", "||")
 	code = replaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
 	code = replaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
 
-	// изменение func и добавление any после каждой переменной
-	code = replaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
+	// изменение function и добавление any после каждой переменной
+	code = replaceAllStringRegexpFunc(code, `(?i)(function[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
 		// Извлекаем имя функции и параметры из совпадения
-		reg := regexp.MustCompile(`(?i)(func[ \t]+)(\w+)\s*\(([^)]*)\)`)
+		reg := regexp.MustCompile(`(?i)(function[ \t]+)(\w+)\s*\(([^)]*)\)`)
 		matches := reg.FindStringSubmatch(match)
 
 		// Если имя функции "main", пропускаем изменения
 		if strings.EqualFold(matches[2], "main") {
-			return "func main()) {\n"
+			return "function main()) {\n"
 		}
 
 		// Извлекаем параметры из совпадения
-		paramsStart := len("func")
+		paramsStart := len("function")
 		paramsEnd := len(match) - 1
 		params := match[paramsStart:paramsEnd]
 
@@ -75,21 +132,14 @@ func main()
 			lastParamIndex := len(paramArray) - 1
 			paramArray[lastParamIndex] = strings.TrimSuffix(paramArray[lastParamIndex], ")") + ")"
 		}
-		// Проверяем имя функции и определяем тип возвращаемого значения
-		var returnType string
-		if strings.EqualFold(matches[2], "checkPrecondSt") || strings.EqualFold(matches[2], "checkPrecondBt") || strings.EqualFold(matches[2], "setwex") {
-			returnType = " bool"
-		} else {
-			returnType = " any"
-		}
 
-		// Собираем обновленные параметры и тип возвращаемого значения
+		// Собираем обновленные параметры
 		updatedParams := strings.Join(paramArray, ", ")
 
 		// Возвращаем обновленный код
-		return "func " + updatedParams + returnType + " {\n\t"
+		return "function " + updatedParams + " any {\n\t"
 	})
-	code = replaceAllStringRegexp(code, `func\s+(\w+)\s*\(([^)]*)\)`, `func $1($2`)
+	code = replaceAllStringRegexp(code, `function\s+(\w+)\s*\(([^)]*)\)`, `function $1($2`)
 
 	//условия
 	code = replaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
@@ -121,15 +171,14 @@ func main()
 
 	// Логические операции
 	// Dost TRUE FALSE нужно будет написать функции внутри GO, потому что такой альтернативы нет
-	code = replaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
-	code = replaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) >= convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) < convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) > convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) <= convertToInteger($3))`)
+	code = replaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `($2 == $3)`)
+	code = replaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `$1 != $2`)
+	code = replaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `($2 >= $3)`)
+	code = replaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `($2 < $3)`)
+	code = replaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `($2 > $3)`)
+	code = replaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `($2 <= $3)`)
 	code = replaceAllStringRegexp(code, `(?i)\b(NOT)\(([^)]+)\)`, `^(0xFFFFFFFFFFFFFFFF & $3)`)
 
-	//конвертируем в инт
 	// Работа с битами и байтами
 	// Функция BIT
 	code = replaceAllStringRegexp(code, `bit\(([^,]+),([^)]+)\)`, `$1 & (1 << $2)`)
@@ -181,19 +230,13 @@ func main()
 	//sleep
 	code = replaceAllStringRegexp(code, `sleep\(([^)]+)\)`, `time.Sleep(($1) * time.Second)`)
 
+	//x = 0
+	code = replaceAllStringRegexp(code, `(?m)^([[:space:]]*)(\w+)\s*=\s*0\s*$`, `$1//$2=0`)
+
 	//реперы
 	Reps = findReps(code)
 	code = replaceExpressions(code, Reps)
 	code = replaceAllStringRegexp(code, `\.Value\[(.*?)\]`, `.$1`)
-
-	code = strings.ReplaceAll(code, "x=0", "//x = 0")
-
-	//потому удалить, относится только к самой первой программе
-	code = strings.ReplaceAll(code, "dout[2]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао", "dout[2]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао\n    ")
-	code = strings.ReplaceAll(code, "dout[1]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао", "dout[1]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао")
-	code = strings.ReplaceAll(code, "convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value*1.15)", "convertToInteger(convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value)*convertToInteger(1.15))")
-	code = strings.ReplaceAll(code, "return(SET_WAIT(sys,state,timeout))\n}", "return(SET_WAIT(sys,state,timeout))\n}\n return false")
-	code = strings.ReplaceAll(code, "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей", "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей\n return (t)")
 
 	return code
 }

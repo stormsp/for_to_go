@@ -2,11 +2,80 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os/exec"
+	"regexp"
 	"time"
 )
 
 // TODO: nmin, nmax,dost, true,false, cyclesec,execsec,
+type RepsValue interface{}
+
+type Rep struct {
+	sys_num int
+	SYS_NUM int
+	Value   bool
+}
+
+var Reps map[string]Rep
+
+//работа переводчика____________________________________________________
+
+func findReps(text string) map[string]Rep {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+	matches := re.FindAllStringSubmatch(text, -1)
+
+	reps := make(map[string]Rep)
+
+	for _, match := range matches {
+		if len(match) > 1 {
+			rep := match[1]
+			// Убираем пробелы и символы табуляции в начале и конце строки
+			rep = regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(rep, "")
+
+			// Проверяем, был ли репер добавлен ранее
+			if _, found := reps[rep]; !found {
+				// Генерируем случайное значение 0 или 1
+				randomValue := rand.Intn(2)
+				if randomValue == 0 {
+					reps[rep] = Rep{Value: false}
+				} else {
+					reps[rep] = Rep{Value: true}
+				}
+			}
+		}
+	}
+
+	return reps
+}
+
+func replaceExpressions(text string, reps map[string]Rep) string {
+	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
+
+	// Заменяем выражения в тексте
+	result := re.ReplaceAllStringFunc(text, func(match string) string {
+		repName := match[1 : len(match)-1] // Извлекаем имя репера из скобок
+		if _, found := reps[repName]; found {
+			return fmt.Sprintf("Reps[\"%s\"].Value", repName)
+		}
+		return match // Если репер не найден, оставляем выражение без изменений
+	})
+
+	return result
+}
+
+func replaceAllStringRegexp(input, pattern, replace string) string {
+	reg := regexp.MustCompile(pattern)
+	return reg.ReplaceAllString(input, replace)
+}
+
+func replaceAllStringRegexpFunc(input, pattern string, repl func(string) string) string {
+	reg := regexp.MustCompile(pattern)
+	return reg.ReplaceAllStringFunc(input, repl)
+}
+
+//работа переводчика____________________________________________________
+
 // BIT - получить значение бита из двойного слова
 func BIT(dw uint32, bit0 uint) uint32 {
 	return (dw >> bit0) & 1
@@ -63,22 +132,37 @@ func SET(parameter any, value any) {
 	parameter = value
 }
 
-func SET_WAIT(parameter any, value any, timeout any) any {
+func SET_WAIT(parameter any, value any, timeout any) bool {
 	parameter = value
-	return 0
+	return true
 }
 
-func main() {
-	dw := uint32(0b101)            // Пример двойного слова
-	bitValue := BIT(dw, 0)         // Получение значения бита
-	bitsValue := BITS(dw, 1, 0b11) // Получение группы битов
-	// bxchgValue := BXCHG(dw, "1234") // Перестановка байтов, требуется реализация
-	setbitsValue := SETBITS(0b1001, 2, 1, 0b11) // Установка битов
+// isBool проверяет, является ли значение логическим (bool)
+func isBool(val RepsValue) bool {
+	_, ok := val.(bool)
+	return ok
+}
 
-	fmt.Printf("BIT: %d\n", bitValue)
-	fmt.Printf("BITS: %d\n", bitsValue)
-	// fmt.Printf("BXCHG: %x\n", bxchgValue)
-	fmt.Printf("SETBITS: %b\n", setbitsValue)
+// isInt проверяет, является ли значение целочисленным (int)
+func isInt(val RepsValue) bool {
+	_, ok := val.(int)
+	return ok
+}
+
+// getBoolValue возвращает булево значение из RepsValue
+func convertToInteger(value RepsValue) int {
+	switch v := value.(type) {
+	case bool:
+		if v {
+			return 1
+		}
+		return 0
+	case int:
+		return v
+	default:
+		// По умолчанию возвращаем 0 или другое значение по вашему усмотрению
+		return 0
+	}
 }
 
 func FINDOUT(first int, value int, count int, arr []int) int {
