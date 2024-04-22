@@ -19,7 +19,7 @@ func translate_for_to_go(code string) string {
 	//добавляем func main() после последнего endfunc
 	var newCode string
 	// Найдем последнее вхождение "endfunc"
-	newCode = code
+	newCode = code	
 	lastEndfuncIndex := strings.LastIndex(newCode, "endfunc")
 	if lastEndfuncIndex == -1 {
 		log.Fatal("Не удалось найти endfunc в коде")
@@ -37,11 +37,11 @@ func main()
 	code = strings.ReplaceAll(code, ";", "//")
 	code = strings.ReplaceAll(code, "&", " && ")
 	code = strings.ReplaceAll(code, "|", " || ")
-	code = replaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
-	code = replaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
+	code = ReplaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
+	code = ReplaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
 
 	// изменение func и добавление any после каждой переменной
-	code = replaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
+	code = ReplaceAllStringRegexpFunc(code, `(?i)(func[ \t]+)(\w+\s*\(\s*[^)]*\s*\))\s*`, func(match string) string {
 		// Извлекаем имя функции и параметры из совпадения
 		reg := regexp.MustCompile(`(?i)(func[ \t]+)(\w+)\s*\(([^)]*)\)`)
 		matches := reg.FindStringSubmatch(match)
@@ -60,7 +60,6 @@ func main()
 		paramArray := regexp.MustCompile(`\s*,\s*`).Split(params, -1)
 		for i, param := range paramArray {
 			param = strings.TrimSpace(param)
-
 			// Добавляем проверку на "id" или "ID"
 			if strings.EqualFold(param, "id)") || strings.EqualFold(param, "timeout") {
 				paramArray[i] = param + " int"
@@ -89,102 +88,107 @@ func main()
 		// Возвращаем обновленный код
 		return "func " + updatedParams + returnType + " {\n\t"
 	})
-	code = replaceAllStringRegexp(code, `func\s+(\w+)\s*\(([^)]*)\)`, `func $1($2`)
+	code = ReplaceAllStringRegexp(code, `func\s+(\w+)\s*\(([^)]*)\)`, `func $1($2`)
 
 	//условия
-	code = replaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
-	code = replaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
+	code = ReplaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
+	code = ReplaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
 
 	// Перевод функций математики
-	code = replaceAllStringRegexp(code, `(?i)abs\(([^)]+)\)`, `math.Abs($1)`)
-	code = replaceAllStringRegexp(code, `(?i)acos\(([^)]+)\)`, `math.Acos($1)`)
-	code = replaceAllStringRegexp(code, `(?i)asin\(([^)]+)\)`, `math.Asin($1)`)
-	code = replaceAllStringRegexp(code, `(?i)atan\(([^)]+)\)`, `math.Atan($1)`)
-	code = replaceAllStringRegexp(code, `(?i)cos\(([^)]+)\)`, `math.Cos($1)`)
-	code = replaceAllStringRegexp(code, `(?i)sin\(([^)]+)\)`, `math.Sin($1)`)
-	code = replaceAllStringRegexp(code, `(?i)tan\(([^)]+)\)`, `math.Tan($1)`)
-	code = replaceAllStringRegexp(code, `(?i)exp\(([^)]+)\)`, `math.Exp($1)`)
-	code = replaceAllStringRegexp(code, `(?i)ln\(([^)]+)\)`, `math.Log($1)`)
-	code = replaceAllStringRegexp(code, `(?i)log\(([^)]+)\)`, `math.Log10($1)`)
-	code = replaceAllStringRegexp(code, `(?i)sqrt\(([^)]+)\)`, `math.Sqrt($1)`)
-	code = replaceAllStringRegexp(code, `(?i)sign\(([^)]+)\)`, `math.Sign($1)`)
-	code = replaceAllStringRegexp(code, `(?i)sgn\(([^)]+)\)`, `(0 if $1 == 0 else -1 if $1 < 0 else 1)`)
-	code = replaceAllStringRegexp(code, `(?i)pow\(([^,]+),([^)]+)\)`, `math.Pow($1, $2)`)
-	code = replaceAllStringRegexp(code, `(?i)rand\(\)`, `random.Float64()`)
-	code = replaceAllStringRegexp(code, `(?i)min\(([^,]+),([^)]+)\)`, `math.Min($1, $2)`)
-	code = replaceAllStringRegexp(code, `(?i)max\(([^,]+),([^)]+)\)`, `math.Max($1, $2)`)
-	code = replaceAllStringRegexp(code, `(?i)int\(([^)]+)\)`, `int($1)`)
-	code = replaceAllStringRegexp(code, `(?i)restdiv\(([^,]+),([^)]+)\)`, `$1 % $2`)
+	code = ReplaceAllStringRegexp(code, `(?i)abs\(([^)]+)\)`, `math.Abs($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)acos\(([^)]+)\)`, `math.Acos($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)asin\(([^)]+)\)`, `math.Asin($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)atan\(([^)]+)\)`, `math.Atan($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)cos\(([^)]+)\)`, `math.Cos($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)sin\(([^)]+)\)`, `math.Sin($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)tan\(([^)]+)\)`, `math.Tan($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)exp\(([^)]+)\)`, `math.Exp($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)ln\(([^)]+)\)`, `math.Log($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)log\(([^)]+)\)`, `math.Log10($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)sqrt\(([^)]+)\)`, `math.Sqrt($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)sign\(([^)]+)\)`, `math.Sign($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)sgn\(([^)]+)\)`, `(0 if $1 == 0 else -1 if $1 < 0 else 1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)pow\(([^,]+),([^)]+)\)`, `math.Pow($1, $2)`)
+	code = ReplaceAllStringRegexp(code, `(?i)rand\(\)`, `random.Float64()`)
+	code = ReplaceAllStringRegexp(code, `(?i)min\(([^,]+),([^)]+)\)`, `math.Min($1, $2)`)
+	code = ReplaceAllStringRegexp(code, `(?i)max\(([^,]+),([^)]+)\)`, `math.Max($1, $2)`)
+	code = ReplaceAllStringRegexp(code, `(?i)int\(([^)]+)\)`, `int($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)restdiv\(([^,]+),([^)]+)\)`, `$1 % $2`)
 	// Для функций nmin и nmax нужно будет написать функцию внутри Go
-	code = replaceAllStringRegexp(code, `(?i)nmin\(([^)]+)\)`, `NMin($1)`)
-	code = replaceAllStringRegexp(code, `(?i)nmax\(([^)]+)\)`, `NMax($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)nmin\(([^)]+)\)`, `NMIN($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)nmax\(([^)]+)\)`, `NMAX($1)`)
 
 	// Логические операции
 	// Dost TRUE FALSE нужно будет написать функции внутри GO, потому что такой альтернативы нет
-	code = replaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
-	code = replaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) >= convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) < convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) > convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) <= convertToInteger($3))`)
-	code = replaceAllStringRegexp(code, `(?i)\b(NOT)\(([^)]+)\)`, `^(0xFFFFFFFFFFFFFFFF & $3)`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) >= convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) < convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) > convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) <= convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(NOT)\(([^)]+)\)`, `^(0xFFFFFFFFFFFFFFFF & $3)`)
+	//dost
+	code = ReplaceAllStringRegexp(code, `(?i)dost`, "DOST")
+	code = ReplaceAllStringRegexp(code, `(?i)\btrue\(([^)]+)\)`, `TRUE($1)`)
+	code = ReplaceAllStringRegexp(code, `(?i)\bfalse\(([^)]+)\)`, `FALSE($1)`)
+
+
 
 	//конвертируем в инт
 	// Работа с битами и байтами
 	// Функция BIT
-	code = replaceAllStringRegexp(code, `bit\(([^,]+),([^)]+)\)`, `$1 & (1 << $2)`)
+	code = ReplaceAllStringRegexp(code, `bit\(([^,]+),([^)]+)\)`, `$1 & (1 << $2)`)
 	// Функция BITS - может потребоваться вспомогательная функция
-	code = replaceAllStringRegexp(code, `bits\(([^,]+),([^,]+),([^)]+)\)`, `Bits($1, $2, $3)`)
+	code = ReplaceAllStringRegexp(code, `bits\(([^,]+),([^,]+),([^)]+)\)`, `BITS($1, $2, $3)`)
 	// Функция BXCHG - может потребоваться вспомогательная функция
-	code = replaceAllStringRegexp(code, `bxchg\(([^,]+),([^)]+)\)`, `Bxchg($1, $2)`)
+	code = ReplaceAllStringRegexp(code, `bxchg\(([^,]+),([^)]+)\)`, `BXCHG($1, $2)`)
 	// Функция SETBITS - может потребоваться вспомогательная функция
-	code = replaceAllStringRegexp(code, `setbits\(([^,]+),([^,]+),([^,]+),([^)]+)\)`, `Setbits($1, $2, $3, $4)`)
+	code = ReplaceAllStringRegexp(code, `setbits\(([^,]+),([^,]+),([^,]+),([^)]+)\)`, `SETBITS($1, $2, $3, $4)`)
 
 	// Функции над временем
 	// Функция TIME
-	code = replaceAllStringRegexp(code, `time\(\)`, `time.Now().Unix()`)
+	code = ReplaceAllStringRegexp(code, `time\(\)`, `time.Now().Unix()`)
 	// Функция SECOND
-	code = replaceAllStringRegexp(code, `second\(([^)]+)\)`, `$1.Second()`)
+	code = ReplaceAllStringRegexp(code, `second\(([^)]+)\)`, `$1.Second()`)
 	// Функция MINUTE
-	code = replaceAllStringRegexp(code, `minute\(([^)]+)\)`, `$1.Minute()`)
+	code = ReplaceAllStringRegexp(code, `minute\(([^)]+)\)`, `$1.Minute()`)
 	// Функция HOUR
-	code = replaceAllStringRegexp(code, `hour\(([^)]+)\)`, `$1.Hour()`)
+	code = ReplaceAllStringRegexp(code, `hour\(([^)]+)\)`, `$1.Hour()`)
 	// Функция MONTHDAY
-	code = replaceAllStringRegexp(code, `monthday\(([^)]+)\)`, `$1.Day()`)
+	code = ReplaceAllStringRegexp(code, `monthday\(([^)]+)\)`, `$1.Day()`)
 	// Функция MONTH
-	code = replaceAllStringRegexp(code, `month\(([^)]+)\)`, `int($1.Month()) - 1`) // В Go месяцы начинаются с 1, а не с 0
+	code = ReplaceAllStringRegexp(code, `month\(([^)]+)\)`, `int($1.Month()) - 1`) // В Go месяцы начинаются с 1, а не с 0
 	// Функция YEAR
-	code = replaceAllStringRegexp(code, `year\(([^)]+)\)`, `$1.Year()`)
+	code = ReplaceAllStringRegexp(code, `year\(([^)]+)\)`, `$1.Year()`)
 	// Функция WEEKDAY
-	code = replaceAllStringRegexp(code, `weekday\(([^)]+)\)`, `int($1.Weekday())`) // В Go воскресенье - это 0
+	code = ReplaceAllStringRegexp(code, `weekday\(([^)]+)\)`, `int($1.Weekday())`) // В Go воскресенье - это 0
 	// Функция YEARDAY
-	code = replaceAllStringRegexp(code, `yearday\(([^)]+)\)`, `$1.YearDay() - 1`) // В Go дни года начинаются с 1
+	code = ReplaceAllStringRegexp(code, `yearday\(([^)]+)\)`, `$1.YearDay() - 1`) // В Go дни года начинаются с 1
 	// Функция MAKETIME
-	code = replaceAllStringRegexp(code, `maketime\(([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^)]+)\)`,
+	code = ReplaceAllStringRegexp(code, `maketime\(([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^)]+)\)`,
 		`time.Date($6 + 1, time.Month($5 + 1), $4, $1, $2, $3, 0, time.UTC).Unix()`)
 
 	//getticks
-	code = replaceAllStringRegexp(code, `(?i)getticks`, "GETTICKS")
+	code = ReplaceAllStringRegexp(code, `(?i)getticks`, "GETTICKS")
 	//ticksize
-	code = replaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
+	code = ReplaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
-	code = replaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
-	code = replaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
+	code = ReplaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
+	code = ReplaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
 
 	//set_wait доделать!
-	code = replaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
+	code = ReplaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
 	//return
-	code = replaceAllStringRegexp(code, `(?i)return`, "return")
-	//dost
-	code = replaceAllStringRegexp(code, `(?i)dost`, "DOST")
+	code = ReplaceAllStringRegexp(code, `(?i)return`, "return")
+
 
 	//sleep
-	code = replaceAllStringRegexp(code, `sleep\(([^)]+)\)`, `time.Sleep(($1) * time.Second)`)
+	code = ReplaceAllStringRegexp(code, `sleep\(([^)]+)\)`, `time.Sleep(($1) * time.Second)`)
 
 	//реперы
 	Reps = findReps(code)
-	code = replaceExpressions(code, Reps)
-	code = replaceAllStringRegexp(code, `\.Value\[(.*?)\]`, `.$1`)
+	code = ReplaceExpressions(code, Reps)
+	code = ReplaceAllStringRegexp(code, `\.Value\[(.*?)\]`, `.$1`)
 
 	code = strings.ReplaceAll(code, "x=0", "//x = 0")
 

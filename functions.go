@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 	"time"
+	"math"
 )
 
 // TODO: nmin, nmax,dost, true,false, cyclesec,execsec,
@@ -18,6 +19,11 @@ type Rep struct {
 }
 
 var Reps map[string]Rep
+
+var database = map[string] bool {
+	"a": true,
+	"b": false,
+}
 
 //работа переводчика____________________________________________________
 
@@ -49,7 +55,7 @@ func findReps(text string) map[string]Rep {
 	return reps
 }
 
-func replaceExpressions(text string, reps map[string]Rep) string {
+func ReplaceExpressions(text string, reps map[string]Rep) string {
 	re := regexp.MustCompile(`\{([^{}\n]+)\}`)
 
 	// Заменяем выражения в тексте
@@ -64,40 +70,93 @@ func replaceExpressions(text string, reps map[string]Rep) string {
 	return result
 }
 
-func replaceAllStringRegexp(input, pattern, replace string) string {
+func ReplaceAllStringRegexp(input, pattern, replace string) string {
 	reg := regexp.MustCompile(pattern)
 	return reg.ReplaceAllString(input, replace)
 }
 
-func replaceAllStringRegexpFunc(input, pattern string, repl func(string) string) string {
+func ReplaceAllStringRegexpFunc(input, pattern string, repl func(string) string) string {
 	reg := regexp.MustCompile(pattern)
 	return reg.ReplaceAllStringFunc(input, repl)
 }
 
 //работа переводчика____________________________________________________
 
-// BIT - получить значение бита из двойного слова
-func BIT(dw uint32, bit0 uint) uint32 {
-	return (dw >> bit0) & 1
+
+//математические функции
+//NMIN
+func NMIN(values ...float64) (float64, error) {
+	if len(values) == 0 {
+		return 0, fmt.Errorf("no values provided")
+	}
+	min := math.Inf(1) // Инициализируем min как положительную бесконечность
+	for _, v := range values {
+		if v < min {
+			min = v
+		}
+	}
+	return min, nil
+}
+//NMAX
+func NMAX(values ...float64) (float64, error) {
+	if len(values) == 0 {
+		return 0, fmt.Errorf("no values provided")
+	}
+	max := math.Inf(-1) // Инициализируем max как отрицательную бесконечность
+	for _, v := range values {
+		if v > max {
+			max = v
+		}
+	}
+	return max, nil
 }
 
-// BITS - получить значение группы битов двойного слова по маске
+//логические функции
+// DOST проверяет достоверность переменной по её имени
+func DOST(varName string) int {
+	if valid, exists := database[varName]; exists && valid {
+		return 1
+	}
+	return 0
+}
+// TRUE всегда возвращает true, независимо от входных аргументов
+func TRUE(args ...interface{}) bool {
+	return true
+}
+
+// FALSE принимает любое количество аргументов и всегда возвращает false
+func FALSE(args ...interface{}) bool {
+	return false
+}
+
+
+//битовые функции
+
+
+// BITS получает значение группы битов по маске, начиная с заданного бита
 func BITS(dw uint32, bit0 uint, mask uint32) uint32 {
 	return (dw >> bit0) & mask
 }
 
-// BXCHG - переставить байты в двойном слове согласно заданной последовательности
+// BXCHG переставляет байты в двойном слове в соответствии с заданной последовательностью
 func BXCHG(dw uint32, byteseq string) uint32 {
-	// Здесь может быть реализация, учитывающая последовательность byteseq для перестановки байтов
-	// Пример реализации может потребовать дополнительного кода для парсинга byteseq
-	return dw // Заглушка для примера
+	var result uint32
+	for i, char := range byteseq {
+		if char >= '1' && char <= '4' {
+			shift := (4 - uint(char-'0')) * 8
+			result |= ((dw >> shift) & 0xFF) << (3 - i) * 8
+		}
+	}
+	return result
 }
 
-// SETBITS - заменить cnt бит в dw, начиная с позиции shf, на значение val
+// SETBITS устанавливает значения битов в числе на заданное значение
 func SETBITS(dw uint32, cnt uint, shf uint, val uint32) uint32 {
-	mask := uint32((1<<cnt)-1) << shf // Убедимся, что маска имеет тип uint32
-	return (dw &^ mask) | ((val&(1<<cnt) - 1) << shf)
+	mask := uint32((1<<cnt - 1) << shf) // Создаём маску для установки битов
+	return (dw &^ mask) | ((val << shf) & mask)
 }
+
+
 
 func GETTICKS(prevTickCnt int) int {
 	currentTickCnt := int(time.Now().UnixNano() / int64(time.Millisecond))
@@ -121,12 +180,6 @@ func TICKSIZE() int {
 	return duration
 }
 
-func DOST(a any) any {
-	if a == a {
-		return 1
-	}
-	return 1
-}
 
 func SET(parameter any, value any) {
 	parameter = value
@@ -137,11 +190,14 @@ func SET_WAIT(parameter any, value any, timeout any) bool {
 	return true
 }
 
+
+
 // isBool проверяет, является ли значение логическим (bool)
 func isBool(val RepsValue) bool {
 	_, ok := val.(bool)
 	return ok
 }
+
 
 // isInt проверяет, является ли значение целочисленным (int)
 func isInt(val RepsValue) bool {
