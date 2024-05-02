@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"time"
 	"math"
+	"runtime"
+	"os"
 )
 
 // TODO: nmin, nmax,dost, true,false, cyclesec,execsec,
@@ -24,6 +26,14 @@ var database = map[string] bool {
 	"a": true,
 	"b": false,
 }
+
+const (
+	// Предположим, что период цикла в тиках таймера задан как константа
+	ticksPerCycle uint = 100 // количество тиков в одном цикле
+
+	// Количество тиков в секунде, предположим, что 1 секунда = 100 тиков
+	ticksPerSecond uint = 100
+)
 
 //работа переводчика____________________________________________________
 
@@ -131,8 +141,6 @@ func FALSE(args ...interface{}) bool {
 
 
 //битовые функции
-
-
 // BITS получает значение группы битов по маске, начиная с заданного бита
 func BITS(dw uint32, bit0 uint, mask uint32) uint32 {
 	return (dw >> bit0) & mask
@@ -156,8 +164,50 @@ func SETBITS(dw uint32, cnt uint, shf uint, val uint32) uint32 {
 	return (dw &^ mask) | ((val << shf) & mask)
 }
 
+//функции времени выполнения
+// CYCLESEC возвращает период запуска алгоритма в секундах
+func CYCLESEC() float64 {
+	return float64(ticksPerCycle) / float64(ticksPerSecond)
+}
+
+// Функция, которую мы хотим замерить
+func someTask() {
+	// Имитация некоторой длительной операции
+	time.Sleep(2 * time.Second)
+}
+
+// EXECSEC измеряет и возвращает время выполнения функции someTask в секундах
+func EXECSEC() float64 {
+	startTime := time.Now() // Засекаем время начала выполнения
+	someTask()             // Выполнение функции, время которой необходимо измерить
+	duration := time.Since(startTime) // Вычисляем длительность выполнения
+	return duration.Seconds()         // Возвращаем длительность в секундах
+}
 
 
+//функции над таймерами
+func TIMERMSEC(t time.Time) int {
+	return t.Nanosecond() / 1e6
+}
+// TIMERSEC возвращает секунды от начала времени, указанного в параметре
+func TIMERSEC(t time.Time) int {
+	return t.Second()
+}
+// TIMERMIN возвращает минуты от начала времени, указанного в параметре
+func TIMERMIN(t time.Time) int {
+	return t.Minute()
+}
+// TIMERHOUR возвращает часы от начала времени, указанного в параметре
+func TIMERHOUR(t time.Time) int {
+	return t.Hour()
+}
+// MAKETIMER рассчитывает время счётчика из пользовательских данных
+func MAKETIMER(hour, min, sec, msec int) time.Time {
+	return time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), hour, min, sec, msec*1e6, time.Local)
+}
+
+
+//функции счетчиков тиков
 func GETTICKS(prevTickCnt int) int {
 	currentTickCnt := int(time.Now().UnixNano() / int64(time.Millisecond))
 	if prevTickCnt != 0 {
@@ -180,7 +230,63 @@ func TICKSIZE() int {
 	return duration
 }
 
+//функции перезагрузки не понял как реализовать на винде
+// stopSoftdog имитирует остановку "программного сторожевого таймера".
+// Теперь функция также проверяет, работает ли она на Linux, и только тогда выполняет свои действия.
+func STOP_SOFTDOG() {
+	// Получаем информацию об операционной системе
+	osType := runtime.GOOS
 
+	if osType != "linux" {
+		fmt.Println("Функция STOP_SOFTDOG поддерживается только на Linux.")
+		return
+	}
+
+	fmt.Println("STOP_SOFTDOG: Создание файла coredump.txt и завершение работы программы на Linux.")
+	file, err := os.Create("coredump.txt")
+	if err != nil {
+		fmt.Println("Ошибка при создании файла coredump.txt:", err)
+		return
+	}
+	defer file.Close()
+
+	file.WriteString("Coredump caused by software watchdog timer.\n")
+
+	// Эмулируем завершение работы программы
+	os.Exit(1)
+}
+
+func RESET(param int) {
+	switch runtime.GOOS {
+	case "windows":
+		if param == -1 {
+			fmt.Println("Выполнение команды shutdown для Windows.")
+			cmd := exec.Command("shutdown", "/s", "/t", "0") // Немедленное выключение
+			if err := cmd.Run(); err != nil {
+				fmt.Println("Ошибка при выполнении команды shutdown:", err)
+			}
+		} else {
+			fmt.Println("Мягкая перезагрузка не поддерживается на Windows с параметром, отличным от -1.")
+		}
+	case "linux":
+		fmt.Println("Создание файла coredump и мягкая перезагрузка на Linux.")
+		_, err := os.Create("coredump.txt")
+		if err != nil {
+			fmt.Println("Не удалось создать файл coredump.txt:", err)
+			return
+		}
+		fmt.Println("Файл coredump.txt создан успешно.")
+		// Имитация деления на ноль для вызова паники
+		fmt.Println("Деление на ноль для искусственной перезагрузки.")
+		_ = 1 / (param - param) // Паника: деление на ноль
+	default:
+		fmt.Println("Операционная система не поддерживается.")
+	}
+}
+
+
+
+//функции алгоритмов управления
 func SET(parameter any, value any) {
 	parameter = value
 }
@@ -188,6 +294,17 @@ func SET(parameter any, value any) {
 func SET_WAIT(parameter any, value any, timeout any) bool {
 	parameter = value
 	return true
+}
+
+
+//функции работы с массивами
+func FINDOUT(first int, value int, count int, arr []int) int {
+	for i := first; i < first+count; i++ {
+		if arr[i] == value {
+			return i
+		}
+	}
+	return -1 // Возвращаем -1, если элемент не найден
 }
 
 
@@ -219,15 +336,6 @@ func convertToInteger(value RepsValue) int {
 		// По умолчанию возвращаем 0 или другое значение по вашему усмотрению
 		return 0
 	}
-}
-
-func FINDOUT(first int, value int, count int, arr []int) int {
-	for i := first; i < first+count; i++ {
-		if arr[i] == value {
-			return i
-		}
-	}
-	return -1 // Возвращаем -1, если элемент не найден
 }
 
 func reset(param int) error {

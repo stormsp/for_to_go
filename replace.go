@@ -6,12 +6,6 @@ import (
 	"log"
 	"regexp"
 	"strings"
-	"time"
-)
-
-var (
-	startTime      = time.Now()
-	ticksPerSecond = 1000
 )
 
 func translate_for_to_go(code string) string {
@@ -168,6 +162,28 @@ func main()
 	code = ReplaceAllStringRegexp(code, `maketime\(([^,]+),([^,]+),([^,]+),([^,]+),([^,]+),([^)]+)\)`,
 		`time.Date($6 + 1, time.Month($5 + 1), $4, $1, $2, $3, 0, time.UTC).Unix()`)
 
+
+	//функции времени выполнения
+	// Функция CYCLESEC
+	code = ReplaceAllStringRegexp(code, `(?i)\bcyclesec\(\)`, `CYCLESEC()`)
+	// Функция EXECSEC
+	code = ReplaceAllStringRegexp(code, `(?i)\bexecsec\(\)`, `EXECSEC()`)
+
+	//функции над таймерами
+	// Функция TIMERMSEC
+	code = ReplaceAllStringRegexp(code, `timermsec\(([^)]+)\)`, `$1.Nanosecond() / 1e6`)
+	// Функция TIMERSEC
+	code = ReplaceAllStringRegexp(code, `timersec\(([^)]+)\)`, `$1.Second()`)
+	// Функция TIMERMIN
+	code = ReplaceAllStringRegexp(code, `timermin\(([^)]+)\)`, `$1.Minute()`)
+	// Функция TIMERHOUR
+	code = ReplaceAllStringRegexp(code, `timerhour\(([^)]+)\)`, `$1.Hour()`)
+	// Функция MAKETIMER
+	code = ReplaceAllStringRegexp(code, `maketimer\(([^,]+),([^,]+),([^,]+),([^)]+)\)`,
+		`time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), $1, $2, $3, $4*1e6, time.Local)`)
+
+
+	//функции счетчиков тиков
 	//getticks
 	code = ReplaceAllStringRegexp(code, `(?i)getticks`, "GETTICKS")
 	//ticksize
@@ -176,10 +192,22 @@ func main()
 	code = ReplaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
 	code = ReplaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
 
+	//функции перезагрузки
+	//stop_softdog
+	code = ReplaceAllStringRegexp(code, `(?i)\bstop_softdog\(\)`, "STOP_SOFTDOG()")
+	//reset
+	code = ReplaceAllStringRegexp(code, `(?i)\breset\(([^)]+)\)`, "RESET($1)")
+
+
 	//set_wait доделать!
 	code = ReplaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
 	//return
 	code = ReplaceAllStringRegexp(code, `(?i)return`, "return")
+
+
+
+	// FINDOUT с массивом aout
+	code = ReplaceAllStringRegexp(code, `(?i)\bfindout\(\s*([^,]+),\s*([^,]+),\s*([^,]+)\s*\)`, "FINDOUT($1, $2, $3, aout)\n")
 
 
 	//sleep
