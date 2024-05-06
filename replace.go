@@ -28,9 +28,11 @@ func main()
 	code = newCode[:lastEndfuncIndex+7] + additionalCode + newCode[lastEndfuncIndex+7:]
 
 	// Перевод символов
-	code = strings.ReplaceAll(code, ";", "//")
+
 	code = strings.ReplaceAll(code, "&", " && ")
 	code = strings.ReplaceAll(code, "|", " || ")
+	//code = ReplaceAllStringRegexp(code, `(.+);.*`, "$1")
+	code = strings.ReplaceAll(code, ";", "//")
 	code = ReplaceAllStringRegexp(code, `#\[(.*?)\]`, "$1")
 	code = ReplaceAllStringRegexp(code, `(?i)\s*end\w*`, "\n}")
 
@@ -208,6 +210,18 @@ func main()
 
 	// FINDOUT с массивом aout
 	code = ReplaceAllStringRegexp(code, `(?i)\bfindout\(\s*([^,]+),\s*([^,]+),\s*([^,]+)\s*\)`, "FINDOUT($1, $2, $3, aout)\n")
+
+
+	//initouts
+	code = ReplaceAllStringRegexp(code, `(?i)initouts\s+(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*`, "INITOUTS($1, $2, $3)\n")
+	//beep
+	code = ReplaceAllStringRegexp(code, `(?i)beep\s*\(\s*\)\s*`, "BEEP()\n")
+	//siren_on
+	code = ReplaceAllStringRegexp(code, `(?i)siren_on\s*\(\s*\)\s*`, "SIREN_ON()\n")
+	//siren_off
+	code = ReplaceAllStringRegexp(code, `(?i)siren_off\s*\(\s*\)\s*`, "SIREN_OFF()\n")
+	//execute
+	code = ReplaceAllStringRegexp(code, `(?i)execute\s+\[?"?([^"\]\s]+)"?\]?\s*,\s*"([^"\s]+)"\s*`, "EXECUTE($1, \"$2\")\n")
 
 
 	//sleep

@@ -22,7 +22,7 @@ type Rep struct {
 
 var Reps map[string]Rep
 
-var database = map[string] bool {
+var database = map[any] bool {
 	"a": true,
 	"b": false,
 }
@@ -123,7 +123,7 @@ func NMAX(values ...float64) (float64, error) {
 
 //логические функции
 // DOST проверяет достоверность переменной по её имени
-func DOST(varName string) int {
+func DOST(varName any) int {
 	if valid, exists := database[varName]; exists && valid {
 		return 1
 	}
@@ -350,4 +350,43 @@ func reset(param int) error {
 	// или других подходящих методов.
 
 	return fmt.Errorf("Unsupported operation")
+}
+
+func INITOUTS(firstIndex, value, count int) []int {
+	// Создаем массив для хранения выходных переменных
+	output := make([]int, count)
+
+	// Инициализируем выходные переменные значениями value
+	for i := 0; i < count; i++ {
+		output[i] = value
+	}
+
+	return output
+}
+
+// Оператор BEEP - выдает звуковой сигнал (однократный короткий "бип").
+func BEEP() {
+	fmt.Println("Beep!")
+}
+
+// Оператор SIREN_ON - включает звуковой сигнал "сирена".
+func SIREN_ON() {
+	fmt.Println("Siren ON")
+	// Ваш код для включения сирены
+}
+
+// Оператор SIREN_OFF - выключает звуковой сигнал "сирена".
+func SIREN_OFF() {
+	fmt.Println("Siren OFF")
+	// Ваш код для выключения сирены
+}
+
+// Оператор EXECUTE - выполняет командный файл по указанному пути и имени.
+func EXECUTE(path, filename string) error {
+	cmd := exec.Command(path, filename)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
