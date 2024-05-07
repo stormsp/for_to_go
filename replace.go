@@ -88,6 +88,7 @@ func main()
 
 	//условия
 	code = ReplaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
+
 	code = ReplaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
 
 	// Перевод функций математики
@@ -116,7 +117,12 @@ func main()
 
 	// Логические операции
 	// Dost TRUE FALSE нужно будет написать функции внутри GO, потому что такой альтернативы нет
+	//code = ReplaceAllStringRegexp(code, `\beq\(([^(),]+|([^()]*\([^()]*\)[^()]*)+),([^()]*)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+	//code = ReplaceAllStringRegexp(code, `\beq\(([^(),]+|([^()]*\([^()]*\)[^()]*)+),([^()]*)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+
 	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+
 	code = ReplaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
 	code = ReplaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) >= convertToInteger($3))`)
 	code = ReplaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) < convertToInteger($3))`)

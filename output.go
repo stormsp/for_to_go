@@ -197,8 +197,8 @@ func main() {
 //____________________Включение табло загазованности и пожара
 //
 // два табло в ББП по СН4
-if (convertToInteger(((Reps["1П СГ ЗАГ1 ДЕС"].Value) && eq(Reps["1П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["3П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["4П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["4П СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
-   if (convertToInteger(((Reps["1П СГ ЗАГ2 ДЕС"].Value) && eq(Reps["1П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["3П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["4П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["4П СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
+if (convertToInteger(((Reps["1П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["1П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["3П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["4П СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["4П СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
+   if (convertToInteger(((Reps["1П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["1П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["3П СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["4П СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["4П СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
    SET(Reps["т1ББПвключ ДЕС"].SYS_NUM, 2)
 x=set_er03s(Reps["табл АварияДЕС"].sys_num,1)
    } else {
@@ -213,8 +213,8 @@ SET(Reps["т2ББПвключ ДЕС"].SYS_NUM, ({т1)
 ББПвключ ДЕС})
 //
 // два табло в ББТ по СН4
-if (convertToInteger(((Reps["1Т СГ ЗАГ1 ДЕС"].Value) && eq(Reps["1Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2Т СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3Т СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["3Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
-   if (convertToInteger(((Reps["1Т СГ ЗАГ2 ДЕС"].Value) && eq(Reps["1Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2Т СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3Т СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["3Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
+if (convertToInteger(((Reps["1Т СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["1Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2Т СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3Т СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["3Т СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
+   if (convertToInteger(((Reps["1Т СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["1Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2Т СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2Т СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["3Т СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["3Т СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
    SET(Reps["т1ББТвключ ДЕС"].SYS_NUM, 2)
 x=set_er03s(Reps["табл АварияДЕС"].sys_num,1)
    } else {
@@ -229,8 +229,8 @@ SET(Reps["т2ББТвключ ДЕС"].SYS_NUM, ({т1)
 ББТвключ ДЕС})
 //
 // два табло в котельной + по угарному газу
-if (convertToInteger(((Reps["1К СГ ЗАГ1 ДЕС"].Value) && eq(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))),1)
-   if (convertToInteger(((Reps["1К СГ ЗАГ2 ДЕС"].Value) && eq(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 2П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))),1)
+if (convertToInteger(((Reps["1К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
+   if (convertToInteger(((Reps["1К СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 2П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
    SET(Reps["т1КОТвключ ДЕС"].SYS_NUM, 2)
 x=set_er03s(Reps["табл АварияДЕС"].sys_num,1)
    } else {
@@ -245,8 +245,8 @@ SET(Reps["т2КОТвключ ДЕС"].SYS_NUM, ({т1)
 КОТвключ ДЕС})//
 //
 // табло СН4 в Одоризаторной
-if (convertToInteger(((Reps["1О СГ ЗАГ1 ДЕС"].Value) && eq(Reps["1О СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2О СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2О СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
-   if (convertToInteger(((Reps["1О СГ ЗАГ2 ДЕС"].Value) && eq(Reps["1О СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2О СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2О СГ СОСТ ДЕС"].Value) == convertToInteger(0))),1)
+if (convertToInteger(((Reps["1О СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["1О СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2О СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2О СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
+   if (convertToInteger(((Reps["1О СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["1О СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2О СГ ЗАГ2 ДЕС"].Value) && (convertToInteger(Reps["2О СГ СОСТ ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
    SET(Reps["тУзОдвключ ДЕС"].SYS_NUM, 2)
 x=set_er03s(Reps["табл АварияДЕС"].sys_num,1)
    } else {
@@ -291,7 +291,7 @@ if (convertToInteger(Reps["РЕЖИМ ГРС ДЕС"].Value) == convertToInteger
 //
 //____________________блокировка котлов отсека ПТН
 //
-if (convertToInteger(Reps["авар ОПТ ДЕС"].Value || Reps["прор ПГ3.1 ДЕС"].Value || Reps["прор ПГ3.2 ДЕС"].Value || ((Reps["1К СГ ЗАГ1 ДЕС"].Value) && eq(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))),1)
+if (convertToInteger(Reps["авар ОПТ ДЕС"].Value || Reps["прор ПГ3.1 ДЕС"].Value || Reps["прор ПГ3.2 ДЕС"].Value || ((Reps["1К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["1К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["2К СГ ЗАГ1 ДЕС"].Value) && (convertToInteger(Reps["2К СГ СОСТ ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0))) || ((Reps["1СС ЗАГ 1П ДЕС"].Value) && (convertToInteger(Reps["1СС ДЕС"].Value) == convertToInteger(0)))) == convertToInteger(1))
   x=set_er03s(Reps["звонок шк ДЕС"].sys_num,1)
   x=set_er03s(Reps["Клап котлы ДЕС"].sys_num,1)
   x=set_er03s(Reps["ТУ КОТЕЛ 1 ДЕС"].sys_num,1)
