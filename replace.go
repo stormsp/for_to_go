@@ -86,10 +86,6 @@ func main()
 	})
 	code = ReplaceAllStringRegexp(code, `func\s+(\w+)\s*\(([^)]*)\)`, `func $1($2`)
 
-	//условия
-	code = ReplaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
-
-	code = ReplaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
 
 	// Перевод функций математики
 	code = ReplaceAllStringRegexp(code, `(?i)abs\(([^)]+)\)`, `math.Abs($1)`)
@@ -117,10 +113,8 @@ func main()
 
 	// Логические операции
 	// Dost TRUE FALSE нужно будет написать функции внутри GO, потому что такой альтернативы нет
-	//code = ReplaceAllStringRegexp(code, `\beq\(([^(),]+|([^()]*\([^()]*\)[^()]*)+),([^()]*)\)`, `(convertToInteger($2) == convertToInteger($3))`)
-	//code = ReplaceAllStringRegexp(code, `\beq\(([^(),]+|([^()]*\([^()]*\)[^()]*)+),([^()]*)\)`, `(convertToInteger($2) == convertToInteger($3))`)
 
-	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\s*\(([^()]+(?:\{[^}]+\})?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
 	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
 
 	code = ReplaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
@@ -197,6 +191,8 @@ func main()
 	//ticksize
 	code = ReplaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
+	code = ReplaceAllStringRegexp(code, `SET\s+(\{[^{}]+\})\s*\[([^\]]+)\],\s*\(([^)]+)\)`, "SET($1[$2], $3)")
+
 	code = ReplaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
 	code = ReplaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
 
@@ -239,7 +235,13 @@ func main()
 	code = ReplaceAllStringRegexp(code, `\.Value\[(.*?)\]`, `.$1`)
 
 	code = strings.ReplaceAll(code, "x=0", "//x = 0")
+	//условия
+	//fmt.Println(code)
+	code = ReplaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
+	//code = ReplaceAllStringRegexp(code, `(?i)\bIF\s*\(([^)]+)\)\s*(?![^{]*})`, `if ($1) {`)
 
+
+	code = ReplaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
 	//потому удалить, относится только к самой первой программе
 	code = strings.ReplaceAll(code, "dout[2]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао", "dout[2]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао\n    ")
 	code = strings.ReplaceAll(code, "dout[1]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао", "dout[1]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао")
@@ -280,6 +282,17 @@ var x bool
 	err = ioutil.WriteFile("output.go", []byte(codeFinal), 0644)
 	if err != nil {
 		fmt.Println("Ошибка записи в файл:", err)
+		return
+	}
+
+	// Запись списка всех реперов (мап Reps) в файл "reps.txt"
+	repsContent := ""
+	for key := range Reps {
+		repsContent += fmt.Sprintf("%s\n", key)
+	}
+	err = ioutil.WriteFile("reps.txt", []byte(repsContent), 0644)
+	if err != nil {
+		fmt.Println("Ошибка записи в файл reps.txt:", err)
 		return
 	}
 
