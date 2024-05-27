@@ -1,0 +1,72 @@
+
+; переходы в режим по кнопкам или командам
+; vi_mode - номер перем режима грс (уст извне, 0-по месту, 1-пу, 2-арм)
+; evt - команда/кнопка
+; vi  - номер переменной слежения
+; v1,v2 - значения режима грс, между которыми переход
+;
+func hev(vi_mode,vi,evt,v1,v2)
+  if (eq(front(evt,vi),1))		; нажата/подана
+    if (eq(dout[vi_mode],v1))
+      dout[vi_mode]=v2			; туды
+    else
+      if (eq(dout[vi_mode],v2))
+        dout[vi_mode]=v1       		; сюды
+      endif
+    endif
+  endif
+  return(0)
+endfunc
+
+;
+; реакция на команды и кнопки перехода в режим
+; по кнопкам или командам 1 переходы 0-2-0
+; по кнопкам или командам 2 переходы 1-2-1
+; переходы 0-1-0 запрещены
+; cmd1,cmd2 - команды пользователя (упр извне вычислитель)
+; but1,but2 - кнопки смены режима (д.вх)
+; vi - начальный номер области переменных
+; vi+0 - номер перем режима грс (уст извне, 0-по месту, 1-пу, 2-арм)
+; vi+1..vi+4 - слежение за ком-кнопками
+; vi+5, vi+6 - задержка при восст команд реж ту грс
+; vi+7, vi+8 - тела команд реж ту грс
+;
+func modes(vi,cmd1,cmd2,but1,but2)
+  x=hev(vi+0,vi+1,cmd1,0,2)
+  x=hev(vi+0,vi+2,but1,0,2)
+  x=hev(vi+0,vi+3,cmd2,1,2)
+  x=hev(vi+0,vi+4,but2,1,2)
+  if (eq(valTrack(cmd1,5,vi+5),1))
+    dout[vi+7]=0
+  endif
+  if (eq(valTrack(cmd2,5,vi+6),1))
+    dout[vi+8]=0
+  endif
+  return(0)
+endfunc
+
+; переходы в режим по команде от алгоритма
+; vi_mode - номер перем режима грс (уст извне, 0-по месту, 1-пу, 2-арм)
+; cmd - команда, значение режима грс, куда надо перевести
+; vi  - номер переменной слежения
+; vi+1 - тело команды
+;
+func cmdmode_in(vi_mode,vi,cmd)
+  if (dost(cmd)&ne(cmd,dout[vi]))
+    dout[vi_mode]=cmd
+    dout[vi+1]=dout[vi_mode]
+  endif
+  dout[vi]=cmd
+  dout[vi+1]=dout[vi_mode]
+  return(0)
+endfunc
+
+
+func to_mest(vi_mode,vi)
+  if (eq(dout[vi],1))
+    dout[vi_mode]=0	; по месту
+    sleep(3*18)
+    dout[vi]=0		; взвод
+  endif
+  return(0)
+endfunc

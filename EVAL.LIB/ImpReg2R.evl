@@ -1,0 +1,108 @@
+; Импульсное регулирование давления 
+; схема из 2-х регулирующих клапанов. вторая уставка открывает два клапана одновременно
+; накачивать трубу меняя клапана
+;#include "eval.lib\ImpReg2R1Z.evl"
+
+
+#include "eval.lib\set.evl"
+#include "eval.lib\time.evl"
+#include "eval.lib\logic.evl"
+
+
+; во всем файле переменные:
+; klap1_sys, klap2_sys  - сисномера регулирующих клапанов 0-закрыт 1 -открыт
+; klapZ_sys		- сисномер защитного клапана 0-открыт 1-закрыт
+; dout[id]              - состояние регулирования 0-выкл, 1-заполнеие, 2-ожидание снижения давления, 3-авария
+; dout[id+1]            - номер dout для хранения номера последнего использованого клапана
+; aout[id+2]            - для таймера
+; t                     - допустимое время работы одного клапана
+
+func fnFill(klap1_sys, klap2_sys,t,id)
+  x=0
+  if ne(dout[id],1) ; не накачка
+    return(x)
+  endif
+
+  if (#[klap1_sys] & #[klap2_sys])	; оба открыты, если расхода через один не достаточно
+  	
+  else
+	if(eq(dout[id+1],0)) 		; если ранее работал первый
+	    x=setex(klap2_sys,1) 	; открываем второй
+	    x=setex(klap1_sys,0) 	; и закрываем первый
+	else
+	    x=setex(klap1_sys,1) 	; иначе открываем первый, даже если никто не работал
+	    x=setex(klap2_sys,0) 	; и закрываем второй
+	endif
+  endif
+  if TimerGT(id+2,t) ;если таймер истек или не работал
+    dout[id+1]=!dout[id+1] ;меняем рабочий клапан
+    x=TimerStart(id+2) ; сбрасываем таймер
+  endif
+
+ return(x)
+endfunc
+
+; остановить накачку газом
+func fnCloseK(klap1_sys, klap2_sys, id)
+ x=0
+ if eq(dout[id],1) ; не снижение давления
+    return(x)
+ endif
+  x=setex(klap1_sys,0) 			; закрыть
+  x=setex(klap2_sys,0) 			; закрыть
+endfunc
+
+func fnStartImp(reduz1_sys, reduz2_sys,id)
+  dout[id]=2
+  x=setwex(reduz1_sys,1,20); закрываем краны ниток редуцирования
+  x=setwex(reduz2_sys,1,20)
+  return(x)
+endfunc
+
+func fnStopImp(reduz1_sys, reduz2_sys, impCom_sys)
+    ; открываем краны ниток редуцирования
+    x= (setwex(reduz1_sys,0,20) + setwex(reduz2_sys,0,20))
+    if le(x,1)			; если хотябы одна нитка открылась
+      x=setwex(impCom_sys,0,10)	; выключаем имп регулирование
+    endif
+  return(x)
+endfunc
+
+
+; вычисление коэффициента пропорциональности расхода
+; х 		- состояние регулирующих клапанов через ИЛИ
+; id 		- предыдущ сост клапанов
+; id+1		- Общее время наполнения
+; id+2		- Общее время закрытого состояния
+; id+3,4	- таймеры расчета времени
+
+func kFlow(x,id)
+  
+  if ne(x,dout[id])		; если положение изменилось
+    if x			; если какой-то открыт
+      aout[id+3]=getticks(0)	; стартуем расчет времени открытия
+      if(gt(aout[id+4],0))	; если до этого считали время закр сост 
+        aout[id+2]=getticks(aout[id+4])*ticksize()
+      endif
+    else			; и наоборот
+      aout[id+4]=getticks(0)
+      if(gt(aout[id+3],0))
+        aout[id+1]=getticks(aout[id+3])*ticksize()
+      endif
+    endif
+  endif
+  dout[id]=x
+  x=0
+  if ne(aout[id+1],0)&ne(aout[id+2],0)
+    x=aout[id+1]/(aout[id+1]+aout[id+2])
+  endif
+  return(x)
+endfunc
+
+
+
+
+
+
+
+

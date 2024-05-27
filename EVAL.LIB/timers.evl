@@ -1,0 +1,44 @@
+; Библиотека функций для работы с таймерами
+; ИТЦ, Галеев 21.04.2015
+;
+;#INCLUDE "eval.lib\time.evl"
+
+; -------   текущий час  ---------
+func CurHour(t)
+ return hour(time())
+endfunc
+
+
+; ------- таймеры --------------
+
+; старт таймера
+; id - номер таймера
+func timerStart(id)
+  aout[id]=getticks(0)
+endfunc
+
+; gt:0-1 когда истек = 1
+; id - номер таймера
+; t - время в сек
+
+func timerGT(id,t)
+  if (gt(getticks(aout[id])*ticksize(),t))
+    return(1)
+  else
+    return(0)
+  endif
+endfunc
+
+; lt:1-0 когда истек = 0
+; id - номер таймера
+; t - время в сек
+func timerLT(id,t)
+  if (gt(getticks(aout[id])*ticksize(),t))
+    return(0)
+  else
+    return(1)
+  endif
+endfunc
+
+
+

@@ -1,0 +1,88 @@
+; 
+; 25.06.15 Galeev
+; для вставки #INCLUDE "eval.lib\kvit.evl"
+
+
+
+; -----  авто-квитирование если квитируется в кп  -----
+; период выполнения 0.5 сек
+; требуется 1 переменная dout
+
+;x=kvitMy({НЕКВИТ КП ТАП},{НЕКВИТ АРМ},1)
+
+func kvitMy(nokv_kp,nokv_we,id)
+  
+  if (eq(nokv_we,1))
+    if(ne(nokv_kp,dout[id])&eq(nokv_kp,0))
+      set_stat all_in_base,current_kvit,1
+      siren_off()
+    endif
+    dout[id]=nokv_kp
+  endif
+endfunc
+
+;
+; ---------  Блок для внутреннего контроллера  ------
+;
+func kvitKP(kvit_sys,id)
+ if(ne(#[kvit_sys],dout[id]))
+  set_stat all_in_base,current_kvit,1
+  siren_off()
+ endif
+ dout[id]=#[kvit_sys]
+endfunc
+;------
+
+
+
+; --------------   Блок для панельника  -------------   
+; квитирование c АРМ (панельника) 
+; период выполнения 2 сек
+
+; квитируем f5 в бд арм, 
+; это приводит к квитированию в кп
+;
+func kvitARM(nokvKP,nokvARM,kviARM_sys)
+ if(nokvKP&(!nokvARM))
+  sleep(18*3)
+   if(nokvKP&(!nokvARM))
+     set kviARM_sys,true(!#[kviARM_sys])
+   endif
+ endif
+endfunc
+
+
+; ------------------   Квитирование из БУС   ---------------------------
+
+; период выполнения 4 с
+; 1 переменная
+
+; nokvkp - неквитированность в кп
+; nokvbus - неквитированность в бус
+; vi - номер переменной для изменения при квитировании из бус
+;
+func kvitBUS(nokvkp,nokvbus,vi)
+
+  if(nokvkp&!nokvbus)		; если БУС не гудит (квитировали), а КП еще гудит, 
+    sleep(18*3)
+    if(nokvkp&!nokvbus)		; если БУС не гудит (квитировали), а КП еще гудит, 
+      dout[vi]=true(!dout[vi])	; сигналить до выключения КП своего звука
+    endif
+  endif
+return(0)
+endfunc
+
+
+func kvitTrack(kvit_sys,id)
+ if(ne(#[kvit_sys],dout[id]))
+  set_stat all_in_base,current_kvit,1
+  siren_off()
+ endif
+ dout[id]=#[kvit_sys]
+endfunc
+
+
+
+
+
+

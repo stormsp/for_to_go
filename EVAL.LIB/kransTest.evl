@@ -1,0 +1,494 @@
+#include "eval.lib\valTrack.evl"
+
+; считаем, что проверка идет только при открытой калитке
+
+
+func testSE01(kalit,st,url,id1,id2)
+
+  ;--init--
+  if lt(getticks(0)*ticksize(),30)
+    aout[id1+0]=true(aout[id1+0])
+    aout[id1+1]=true(aout[id1+1])
+    dout[id1+2]=true(dout[id1+2])
+    aout[id1+4]=true(aout[id1+4])
+    aout[id1+5]=true(aout[id1+5])
+    dout[id1+6]=true(dout[id1+6])
+  endif
+  
+  ;-- const--
+  period_before = 30
+  period_after = 30
+
+;------ open --------------
+  работа = eq(dout[id1+2],1)
+  запуск = eq(url,2)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,3),period_after,id2+1)
+
+  w=aout[id1+3]
+
+  if работа
+    aout[id1+1]=time()-aout[id1+0]
+      ; фиксация открытого положения
+        if eq(st,1) 
+          w=setbits(w,1,3,1)
+          if ne(url,2) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,0)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 1
+      else
+        стало = !bit(w,4)*3
+      endif
+  
+      if eq(было,3)|eq(стало,3);1-"сбой" 
+        rez=0
+      else
+        if eq(было,0);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,0);3-промежут
+            rez=0 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+2]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,2)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+0]=w
+        w=2
+      else
+        aout[id1+0]=time()
+        w=st
+      endif
+      dout[id1+2]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+3]=w
+
+;------ close --------------
+  работа = eq(dout[id1+6],1)
+  запуск = eq(url,1)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,3),period_after,id2+1)
+
+  w=aout[id1+7]
+
+  if работа
+    aout[id1+5]=time()-aout[id1+4]
+      ; фиксация закрытого положения
+        if eq(st,2) 
+          w=setbits(w,1,3,1)
+          if ne(url,1) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,0)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 2
+      else
+        стало = !bit(w,4)*3
+      endif
+  
+      if eq(было,3)|eq(стало,3);1-"сбой" 
+        rez=0
+      else
+        if eq(было,0);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,0);3-промежут
+            rez=3 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+6]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,1)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+4]=w
+        w=1
+      else
+        aout[id1+4]=time()
+        w=st
+      endif
+      dout[id1+6]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+7]=w
+
+endfunc
+
+
+func testSE07E(kalit,st,url,id1,id2)
+
+  ;--init--
+  if lt(getticks(0)*ticksize(),30)
+    aout[id1+0]=true(aout[id1+0])
+    aout[id1+1]=true(aout[id1+1])
+    dout[id1+2]=true(dout[id1+2])
+    aout[id1+4]=true(aout[id1+4])
+    aout[id1+5]=true(aout[id1+5])
+    dout[id1+6]=true(dout[id1+6])
+  endif
+  
+  ;-- const--
+  period_before = 30
+  period_after = 30
+
+;------ open --------------
+  работа = eq(dout[id1+2],1)
+  запуск = eq(url,1)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,0),period_after,id2+1)
+
+  w=aout[id1+3]
+
+  if работа
+    aout[id1+1]=time()-aout[id1+0]
+      ; фиксация открытого положения
+        if eq(st,1) 
+          w=setbits(w,1,3,1)
+          if ne(url,1) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,0)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 1
+      else
+        стало = !bit(w,4)*3
+      endif
+  
+      if eq(было,3)|eq(стало,3);1-"сбой" 
+        rez=0
+      else
+        if eq(было,0);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,0);3-промежут
+            rez=0 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+2]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,2)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+0]=w
+        w=2
+      else
+        aout[id1+0]=time()
+        w=st
+      endif
+      dout[id1+2]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+3]=w
+
+;------ close --------------
+  работа = eq(dout[id1+6],1)
+  запуск = eq(url,2)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,0),period_after,id2+1)
+
+  w=aout[id1+7]
+
+  if работа
+    aout[id1+5]=time()-aout[id1+4]
+      ; фиксация закрытого положения
+        if eq(st,2) 
+          w=setbits(w,1,3,1)
+          if ne(url,2) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,0)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 2
+      else
+        стало = !bit(w,4)*3
+      endif
+  
+      if eq(было,3)|eq(стало,3);1-"сбой" 
+        rez=0
+      else
+        if eq(было,0);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,0);3-промежут
+            rez=3 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+6]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,1)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+4]=w
+        w=1
+      else
+        aout[id1+4]=time()
+        w=st
+      endif
+      dout[id1+6]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+7]=w
+
+endfunc
+
+
+func testSE01_inv(kalit,st,url,id1,id2)
+
+  ;--init--
+  if lt(getticks(0)*ticksize(),30)
+    aout[id1+0]=true(aout[id1+0])
+    aout[id1+1]=true(aout[id1+1])
+    dout[id1+2]=true(dout[id1+2])
+    aout[id1+4]=true(aout[id1+4])
+    aout[id1+5]=true(aout[id1+5])
+    dout[id1+6]=true(dout[id1+6])
+  endif
+  
+  ;-- const--
+  period_before = 30
+  period_after = 30
+
+;------ open --------------
+  работа = eq(dout[id1+2],1)
+  запуск = eq(url,2)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,3),period_after,id2+1)
+
+  w=aout[id1+3]
+
+  if работа
+    aout[id1+1]=time()-aout[id1+0]
+      ; фиксация открытого положения
+        if eq(st,1) 
+          w=setbits(w,1,3,1)
+          if ne(url,2) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,3)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 1
+      else
+        стало = bit(w,4)*3
+      endif
+  
+      if eq(было,0)|eq(стало,0);1-"сбой" 
+        rez=0
+      else
+        if eq(было,3);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,3);3-промежут
+            rez=0 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+2]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,2)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+0]=w
+        w=2
+      else
+        aout[id1+0]=time()
+        w=st
+      endif
+      dout[id1+2]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+3]=w
+
+;------ close --------------
+  работа = eq(dout[id1+6],1)
+  запуск = eq(url,1)&kalit&(!работа)
+  завершается = работа &  valTrack(eq(url,3),period_after,id2+1)
+
+  w=aout[id1+7]
+
+  if работа
+    aout[id1+5]=time()-aout[id1+4]
+      ; фиксация закрытого положения
+        if eq(st,2) 
+          w=setbits(w,1,3,1)
+          if ne(url,1) 
+            завершается = 1
+          endif
+        endif
+      ; фиксация промежут положения
+        if eq(st,3)
+          w=setbits(w,1,4,1)
+        endif
+
+    if завершается
+
+      было=bits(w,0,11b)
+      if bit(w,3)
+        стало = 2
+      else
+        стало = bit(w,4)*3
+      endif
+  
+      if eq(было,0)|eq(стало,0);1-"сбой" 
+        rez=0
+      else
+        if eq(было,3);-30%, если был промежут
+            rez=3	
+        else
+          if eq(стало,3);3-промежут
+            rez=3 ;
+          else
+            if ne(было,стало);4-если состояние изменилось
+              rez=2
+            else
+              rez=bit(w,4)*3
+            endif
+          endif
+        endif
+      endif 
+    
+      dout[id1+6]=rez
+      w=0
+    endif
+  else
+    ; это сохранит время схода 
+    if eq(st,1)
+      w=time()
+    endif
+
+    if запуск
+      
+      if lt(time()-w, period_before)
+        aout[id1+4]=w
+        w=1
+      else
+        aout[id1+4]=time()
+        w=st
+      endif
+      dout[id1+6]=1 ; выполняется
+    endif
+  endif
+
+  aout[id1+7]=w
+
+endfunc
+
+

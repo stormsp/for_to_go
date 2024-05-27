@@ -1,0 +1,10 @@
+
+func oninit(t)
+  prevkn={ŠŠ€ „01}
+endfunc
+
+kn={ŠŠ€ „01}
+if (eq(kn,1)& ne(kn,prevkn))
+  set {103-1}[sys_num],!{103-1}
+endif
+prevkn=kn

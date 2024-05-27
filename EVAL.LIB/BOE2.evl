@@ -1,0 +1,38 @@
+; boe-20
+;
+
+
+func setq(q,cnt_sys)
+      if (dost(#[cnt_sys]))
+        if (gt(abs(#[cnt_sys]-q),5))  	; если расход мало изменился не засылаем
+          set cnt_sys,q
+        endif
+      endif
+endfunc
+
+func setq_one(q,qz,cnt_sys)
+  if dost(q)
+    x=setq(q,cnt_sys)
+  else
+    x=setq(qz,cnt_sys)
+  endif
+endfunc
+
+func setq_periodic(vi,q1,qz,mode,cnt_sys,T)
+  if (ne(mode,2)) ; не автомат расход
+	return(0)
+  endif
+
+  if (ge(getticks(aout[vi])*ticksize(),T))
+    if (dost(q1))
+      x=setq(q1,cnt_sys)
+  else
+      if (valTrack(!dost(q1),60,vi+1)); если расход недост ждем 60 сек потом засылаем замещенный
+        x=setq(qz,cnt_sys)
+      endif
+    endif
+    aout[vi]=getticks(0)
+   endif
+
+return(0)
+endfunc

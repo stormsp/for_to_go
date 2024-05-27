@@ -1,0 +1,52 @@
+
+#include "eval.lib\valTrack.evl"
+
+#include "eval.lib\ImpReg2R1Z.evl"   ;если схема: 2 регулирующих 1 защитный
+;#include "eval.lib\ImpReg3R.evl"    ;если схема: 3 регулирующих
+
+
+; основная функция регулирования давления в импульсном режиме
+; dout[id] - индикация состояния 0 - выкл, 1-наполнение, 2-ожидание снижения давления, 3-высокое давление
+; 
+func ImpReg(preal_sys, pzad, dp,t,id)
+
+ ; ----------------------    регулирование  -----------------------------
+  if checkPrecond(0) 
+
+   if valTrackLT(preal_sys,pzad-dp,10,0)    ; если давление ниже порога
+    dout[id]=1 ; сигнал для начала накачки
+   endif
+   if valTrackGT(preal_sys,pzad+dp,10,0)    ; если давление выше порога
+      x=2                                   ; сигнал для паузы накачки
+      if valTrackGT(preal_sys,pzad*1.05,10,0)
+        x=3                                 ; сигнал для закрытия защитного клапана, если есть
+      endif
+    dout[id]=x 
+   endif
+  
+   x=Fill(klap1_sys, klap2_sys, klap3_sys,id,t)
+   x=CloseK(klap1_sys, klap2_sys, klap3_sys,id)
+
+  endif
+endfunc
+; --------------------- подсчет периодов и расхода--------------------
+; aout[id]
+func Info(q,id)
+ x=dout[0]
+ 
+ if (prevX)
+  if(ne(x,prevX))
+   if(eq(x,1)) ;началось наполнение. посчитаь время ожидания
+     aout[11]=
+   endif
+   if(eq(x,1)) ;началось ожидание. посчитаь время наполнения
+     aout[12]=
+     aout[13]=(q*aout[12]/(aout[11]+aout[12]))
+   endif
+  endif
+ endif
+ prevX=x
+endfunc
+
+
+

@@ -1,0 +1,70 @@
+; Тест КРБП
+; Проверено в Телепаново
+; Галеев 19.03.15
+
+; 25.06.2015 :Галеев. Проверено в Таптыково
+; 1.добавлена обработка события когда при начале теста положение крбп 
+;   сильно отличается от задания. это сразу дает неисправность
+; 2.исключена ошибочная засылка задания выше 100%
+
+;#INCLUDE "eval.lib\klap_test.evl"
+
+;u=klap_test(u_1,{РУЧПОЛБП ЯНАУ},{ПОЛОЖЗАДВ ЯНЛ},33,{КР БП ЯНАУ},7,{РЕЖИМ ГРС})   
+
+; час текущего времени сау
+;
+func curhour(dummy)
+ curtime=time()
+ return(hour(curtime))
+endfunc
+
+;
+; тест клапана
+; man - ручное задание
+; pol - положение клапана
+; u - сигнал управления из pid
+; dout[vi+0] - пс неисправности клапана
+; aout[vi+1] - отсчет времени теста
+; aout[vi+2] - предыдущий час
+; dout[vi+3] - внеочередная проверка
+;
+func klap_test(u,man,pol,vi,bp_kr,t,rejim_grs)
+  if (eq(bp_kr,2))
+
+    if (eq(aout[vi+1],0))
+      u=man		; без проверки было бы так и все
+    endif
+
+    h=curhour(0)
+    if (ne(rejim_grs,0))
+
+      if (ne(h,aout[vi+2])&eq(h,t)&eq(aout[vi+1],0)|dout[vi+3])	; dout - внеочередной тест 
+          if (lt(abs(pol-man),8))
+ 		  	aout[vi+1]=getticks(0)	; ждем
+          else
+			dout[vi]=1
+		  endif
+          dout[vi+3]=0			; сбросить флаг внеочередного теста
+      endif
+
+      if (ne(aout[vi+1],0))
+
+        u=min(man+15,100)      ; все время теста держим задание
+
+        if (ge(getticks(aout[vi+1])*ticksize(),40)|gt(pol,min(99,(man+8))))
+
+          dout[vi]=lt(pol,man+8)
+          aout[vi+1]=0			; сам приедет обратно
+        endif
+      endif
+    endif
+
+    aout[vi+2]=h
+
+  endif
+  return(u)
+endfunc
+
+
+
+

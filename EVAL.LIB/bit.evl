@@ -1,0 +1,17 @@
+; Галеев 
+; Расшифровка состояний по битам
+;#INCLUDE "eval.lib\bit.evl"
+
+
+; cod - целое 16 бит
+; b - номер бита в "cod" 0...15
+func bit(cod,b)
+  if ge(b,8)
+    b=b-8
+    cod=cod/256
+  endif
+  return(ne(cod & (2^b),0))
+endfunc
+
+
+; dout[1]=bit({КОД1 КОТЛ},1)	 	; Клапан БГК открыт

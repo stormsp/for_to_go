@@ -1,0 +1,82 @@
+; Библиотека для работы с одоризатором flowtek
+; #include "eval.lib\flowtek.evl"
+
+; 11 переменных
+func flowtek (vi, cod)
+  
+  b=int(cod/16777216)
+  dout[vi+0]=ne(b&1, 0)   ; бит 0 (описание) обмен с силовым контролл 
+  dout[vi+1]=ne(b&2, 0)   ; бит 1 (описание) нет протока одоранта 
+  dout[vi+2]=ne(b&4, 0)   ; бит 2 (описание) ошибка обмена с hart датч 
+  dout[vi+3]=ne(b&8, 0)   ; бит 3 (описание) останов из-за обмен с датч 
+  dout[vi+4]=ne(b&16, 0)  ; бит 4 (описание) ошиб наполнения, одор остановл 
+  dout[vi+5]=ne(b&32, 0)  ; бит 5 (описание) разряд аккум 
+  dout[vi+6]=ne(b&64, 0)  ; бит 6 (описание)  период дозирования меньше минимального
+  dout[vi+7]=ne(b&128, 0) ; бит 7 (описание) протечка клапана 
+                                ; байт (8-15) 
+  b=int(cod/65536) 
+  dout[vi+8]=ne(b & 1, 0) ; бит 8 (описание) ошиб источника расхода 1 
+                                ; байт (24-31) 
+  b=cod
+  dout[vi+9]=int(b/64) ; бит 31,30 (описание) реж работы
+
+  dout[vi+10]=dout[vi+0]|dout[vi+1]|dout[vi+2]|dout[vi+3]|dout[vi+4]|dout[vi+5]|dout[vi+6]|dout[vi+7]|dout[vi+8]|dout[vi+9]
+
+endfunc
+
+
+
+
+
+; vi    - номер свободной выходной переменной для таймеров
+; 	  	  Требуется 2 шт. При Т=0(разовая засылка) не требуются
+; q1    - мгновенный расход газа по прибору учета газа
+; qz    - расход газа замещающий, при недостоверных 
+;	  	  данных с прибора учета газа (суперфло)
+; mode  - режим одоризации 
+;    	  для flowtek: 	0-настройка
+;			1-полуавтомат от САУ(требуется засылка)
+;	  	    	2-автоматическое получение расхода газа от SFlow 
+; cnt_sys - #сист номер расхода газа одоризатора в который засылать
+; Т 	- период засылки.
+
+
+
+func setq(q,cnt_sys)
+      if (dost(#[cnt_sys]))
+        if (gt(abs(#[cnt_sys]-q),5))  	; если расход мало изменился не засылаем
+          set cnt_sys,q
+        endif
+      endif
+endfunc
+
+func setq_one(q,qz,cnt_sys)
+  if dost(q)
+    x=setq(q,cnt_sys)
+  else
+    x=setq(qz,cnt_sys)
+  endif
+endfunc
+
+func setq_periodic(vi,q1,qz,mode,cnt_sys,T)
+  if (ne(mode,1)) ; не п.автомат расход
+	return(0)
+  endif
+
+  if (ge(getticks(aout[vi])*ticksize(),T))
+    if (dost(q1))
+      x=setq(q1,cnt_sys)
+    else
+      if (valTrack(!dost(q1),60,vi+1)); если расход недост ждем 60 сек потом засылаем замещенный
+        x=setq(qz,cnt_sys)
+      endif
+    endif
+    aout[vi]=getticks(0)
+   endif
+
+endfunc
+
+; при переходе на байпас установить режим павтомат
+func set_mode (mode_sys)
+  x=set_wait(mode_sys,1,10)
+endfunc

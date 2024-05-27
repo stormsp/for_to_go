@@ -1,0 +1,47 @@
+
+; Galeev
+; Расчет обьема газа при работе на байпасе
+    ; 5 переменных
+    ;aout[ba+0] - время открытия
+    ;aout[ba+1] - время закрытия
+    ;aout[ba+2] - время работы на байпасе, час
+    ;aout[ba+3] - объем газа на байпасе, тек цикл
+    ;aout[ba+4] - время работы на байпасе, сек
+    ;aout[ba+5] - объем газа на байпасе тек сутки
+    ;aout[ba+6] - объем газа на байпасе прошлые сутки
+    ; kr_bp - положение байпасного крана
+    ; Vpsut - объем газа за прошлые сутки
+    ; ba - базовый адрес
+
+func Vbp(kr_bp,Vpsut,ba)
+  if ne(kr_bp,2)
+    if dost(aout[ba+1])
+      aout[ba]=time()   ; время открытия
+      aout[ba+1]=false(0) ;время закрытия
+    endif
+    aout[ba+2]=(time()-aout[ba])/3600 ; в часах
+    aout[ba+4]=(time()-aout[ba])      ; в сек
+    aout[ba+3]=aout[ba+2]*Vpsut/24    ; объем газа на байпасе, тек цикл
+  endif
+
+  if eq(kr_bp,2)&eq(dost(aout[ba+1]),0)
+    aout[ba+1]=time()
+    aout[ba+2]=(aout[ba+1]-aout[ba])/3600
+    aout[ba+4]=(aout[ba+1]-aout[ba])      ; в сек
+    aout[ba+5]=aout[ba+5] + aout[ba+3]    ; добавить объем к тек суткам
+  endif
+
+  t1=time()
+  if eq(hour(t1),7) & ne(aout[ba+7],t1) ;gmt 12-ufa
+    aout[ba+6] = aout[ba+5] ; за прошлые сутки
+    aout[ba+5] = 0    ; тек сутки сброс
+  endif
+  
+  
+endfunc
+
+
+
+
+
+

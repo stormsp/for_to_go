@@ -1,0 +1,16 @@
+
+; ПС с гистерезисом
+; ps - текущее значение триггера
+; an - аналоговый сигнал
+; up,dn - верх и ниж границы
+; возврат - новое значение триггера
+;
+func gist(ps,an,up,dn)
+  if (eq(ps,0)&gt(an,up))
+    return(1)
+  endif
+  if (eq(ps,1)&lt(an,dn))
+    return(0)
+  endif
+  return(ps)
+endfunc

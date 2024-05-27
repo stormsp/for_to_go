@@ -1,0 +1,202 @@
+
+; управление задвижкой, с поправками 03.2019
+
+
+
+;#include "eval.lib\valTrack.evl"
+;#include "eval.lib\set.evl"
+;#include "eval.lib\rkTrack.evl"
+;func checkEconom(dummy) - реализовать в основном алгоблоке
+
+;
+; Вспомогательные функции для управления
+;
+func rkStop(sys)
+ return(setwex_dost(sys,0,5))
+endfunc
+func rkOpen(sys)
+ return(setwex_dost(sys,1,5))
+endfunc
+func rkClose(sys)
+ return(setwex_dost(sys,2,5))
+endfunc
+
+
+; Один шаг обычного движения
+; ctrl_sys sys.no управления рк (стоп,открывай,закрывай)
+; zad      задание положения рк
+; fdb      обратная связь (текущее положение крбп), здесь достоверна 
+; bl1      блокировка1 (прев момента)
+; bl2      блокировка2 (программный анализ)
+;
+func rkTrack(ctrl_sys,zad,fdb,bl1,bl2)
+  if(!dost(#[ctrl_sys]))
+    return(0)
+  endif
+
+  ; если недостоверны задание или ос (на всякий) - остановить рк
+  if(!dost(zad)|!dost(fdb))  
+    return(rkStop(ctrl_sys))
+  endif
+
+  ; если сработала одна из блокировок - остановить рк
+  if((dost(bl1)&bl1)|(dost(bl2)&bl2))
+    if (gt(fdb,1)&lt(fdb,97))    ; при этом находимся внутри границы
+       
+      if (eq(#[ctrl_sys],0))                  ; обнуление счетчика при останове
+        opencnt=0
+        closecnt=0
+      endif
+
+      if (eq(#[ctrl_sys],1)&le(opencnt,3))  ; если положение открыт и opencnt<3 
+        opencnt=opencnt+1                   ; считать количество возникновений блокировок
+      endif       
+
+      if (eq(#[ctrl_sys],2)&le(closecnt,3)) ; если положение закрыт и closecnt<3
+        closecnt=closecnt+1                 ; считать количество возникновений блокировок
+      endif
+
+      x=rkStop(ctrl_sys)
+      sleep(18*4)			; пауза переподачи
+      return(x)
+    endif
+  endif
+
+
+  ; выбор люфта
+  gap=2
+  if (checkEconom(0))	; нет 220, экономный режим
+    gap=5		; по тз в давлении это должно отражаться как 8% - подобрать
+  endif
+  ; если задание сопоставимо с люфтом, люфт уменьшаем для дожима
+  if(lt(zad,0.3)|gt(zad,99.7))
+    gap=0.4
+  endif
+
+  if(lt(zad,fdb-gap))
+    opencnt=0
+    if((dost(bl1)&bl1)|(dost(bl2)&bl2))   ; при сигнале блокировок
+      if (lt(fdb,1))                      ; если положение рк<1%
+        return(rkStop(ctrl_sys))          ; блокировать команду закрытия
+      endif
+    endif
+    if (eq(closecnt,3)&valTrack(ne(closecnt,0),20,1)) ; если 3 раза за 20 сек возникают блокировки
+      return(rkStop(ctrl_sys))                        ; блокировать команду закрытия
+    endif
+    return(rkClose(ctrl_sys))
+  else
+    if(gt(zad,fdb+gap))
+      closecnt=0
+      if((dost(bl1)&bl1)|(dost(bl2)&bl2)) ; при сигнале блокировок
+        if (gt(fdb,97))                   ; если положение рк>97%
+          return(rkStop(ctrl_sys))        ; блокировать команду открытия
+        endif
+      endif
+      if (eq(opencnt,3)&valTrack(ne(opencnt,0),20,2)) ; если 3 раза за 20 сек возникают блокировки
+        return(rkStop(ctrl_sys))                      ; блокировать команду открытия
+      endif
+      return(rkOpen(ctrl_sys))
+    else
+      return(rkStop(ctrl_sys))
+    endif
+  endif
+
+endfunc
+
+
+; Регулирование по давлению
+; ctrl_sys sys.no управления рк (стоп,открывай,закрывай)
+; p давление рвых
+; pzad задание по давлению вых
+; dp границы регулирования по давлению
+; 
+func rkTrackP(ctrl_sys,p,pzad,dp,bl1,bl2)
+  if(!dost(#[ctrl_sys]))
+    return(0)
+  endif
+  
+  ; если недостоверно задание - остановить рк
+  if(!dost(pzad))  
+    return(rkStop(ctrl_sys))
+  endif
+
+  if(gt(p,pzad+dp))
+
+    if((dost(bl1)&bl1)|(dost(bl2)&bl2))      ; при сигнале блокировок
+
+      if (eq(#[ctrl_sys],0))                  ; обнуление счетчика при останове
+        opencntp=0
+        closecntp=0
+      endif
+
+        if (eq(#[ctrl_sys],1)&le(opencntp,3))  ; если положение открыт и opencnt <3
+          opencntp=opencntp+1                 ; считать количество возникновений блокировок
+        endif
+          if (eq(opencntp,3))          ; если 3 раза возникают блокировки
+             return(rkStop(ctrl_sys))  ; блокировать команду закрытия
+          endif
+    endif
+    
+    x=rkClose(ctrl_sys)
+    sleep(12)
+  else
+    if(lt(p,pzad-dp))
+
+      if((dost(bl1)&bl1)|(dost(bl2)&bl2))       ; при сигнале блокировок
+
+        if (eq(#[ctrl_sys],0))                  ; обнуление счетчика при останове
+         opencntp=0
+         closecntp=0
+        endif
+
+          if (eq(#[ctrl_sys],2)&le(closecntp,3))  ; если положение закрыт и closecnt<3
+            closecntp=closecntp+1                 ; считать количество возникновений блокировок
+          endif
+            if (eq(closecntp,3))          ; если 3 раза возникают блокировки
+              return(rkStop(ctrl_sys))    ; блокировать команду открытия
+            endif
+      endif
+
+      x=rkOpen(ctrl_sys)
+      sleep(12)
+    endif
+  endif
+  return(rkStop(ctrl_sys))
+endfunc
+
+;
+; Выявление программно блокировки
+; команда ду подана, разность между заданным и реальным сечением больше..
+; изменение реального сечения при поданной команде..
+; cnt - команда ду
+; uzad - заданное положение        
+; pos - реальное положение
+; vi - номер первой переменной из блока 4 шт:
+;      +0 - для слежки за командой ду
+;      +1 - счетчик времени анализа
+;      +2 - положение при подаче команды
+;      +3 - пс блокировки
+;
+func progblock(cnt,uzad,pos,vi)
+  if (ne(cnt,0))                        ; если pos недост, наш пс тоже - при использ проверяется
+    if (ne(dout[vi+0],cnt))     	; подача активной команды была
+      aout[vi+1]=getticks(0)            ; старт анализа
+      aout[vi+2]=pos
+    endif
+  else                                  ; команда стоп
+    aout[vi+1]=0			; стоп анализа
+    dout[vi+3]=0                        ; сброс блокировки
+  endif
+
+  if (ne(aout[vi+1],0))                 ; анализ идет
+    if (gt((getticks(0)-aout[vi+1])*ticksize(),8))	  ; уже столько секунд
+      if (gt(abs(uzad-pos),5)&lt(abs(pos-aout[vi+2]),1))  ; надо ехать, а он не едет
+        dout[vi+3]=1                                      ; это прог блокировка
+      endif
+    endif
+  endif
+
+  dout[vi+0]=cnt			; следим за командами ду
+endfunc
+
+

@@ -1,0 +1,32 @@
+; Засылка расходов в одоризаторы
+
+func setq24(qz_sys,v1,v2)
+    q=0
+    if dost(v1)
+      q=q+(v1/24)
+    endif
+    if dost(v2)
+      q=q+(v2/24)
+    endif
+    if ne(q,0)
+      x=setex (qz_sys,q)
+    endif
+    return(q)
+endfunc
+
+func setq(qz_sys,q1,q2,t,id)
+  q=0
+  if dost(q1)
+    q=q+q1
+  endif
+  if dost(q2)
+    q=q+q2
+  endif
+
+  if gt(getticks(aout[id])*ticksize(),t)
+    x=setex(qz_sys,q)
+    aout[id]=getticks(0)
+  endif
+
+  return(q)
+endfunc

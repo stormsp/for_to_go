@@ -1,0 +1,25 @@
+; СГОЭС 2010года (неработосп по rs485 невозможна)
+; возврат значения дискр 1-бит (норма,авария)
+
+; 0-авария 1-норма
+func sgoes_avar(cod)
+  x=ne(cod & 1, 1)    	  ; авария 
+  return(x)
+endfunc
+
+; 0-норма 1-первышен порог 1
+func sgoes_porog1(cod)
+  x=eq(cod & 1, 2)    	  ; авария 
+  return(x)
+endfunc
+
+; 0-норма 1-первышен порог 2
+func sgoes_porog2(cod)
+  x=eq(cod & 1, 4)    	  ; авария 
+  return(x)
+endfunc
+
+func sgoes(cod) ; для совместимости со старым кодом САУ
+  x=ne(cod & 1, 1)    	  ; авария 
+  return(x)
+endfunc

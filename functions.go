@@ -9,6 +9,8 @@ import (
 	"math"
 	"runtime"
 	"os"
+	"bufio"
+	"strings"
 )
 
 // TODO: nmin, nmax,dost, true,false, cyclesec,execsec,
@@ -123,11 +125,11 @@ func NMAX(values ...float64) (float64, error) {
 
 //логические функции
 // DOST проверяет достоверность переменной по её имени
-func DOST(varName any) int {
+func DOST(varName any) bool {
 	if valid, exists := database[varName]; exists && valid {
-		return 1
+		return true
 	}
-	return 0
+	return false
 }
 // TRUE всегда возвращает true, независимо от входных аргументов
 func TRUE(args ...interface{}) bool {
@@ -389,4 +391,30 @@ func EXECUTE(path, filename string) error {
 		return err
 	}
 	return nil
+}
+
+
+// Функция для добавления фигурных скобок к конструкциям if
+func addBracesToIfStatements(code string) string {
+	var result strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(code))
+
+	// Регулярное выражение для поиска строк, начинающихся с if
+	reIf := regexp.MustCompile(`^\s*if\s*\(?.*\)?\s*$`)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmedLine := strings.TrimSpace(line)
+		// Проверяем, начинается ли строка с if и нет ли уже фигурной скобки
+		if reIf.MatchString(trimmedLine) && !strings.HasSuffix(trimmedLine, "{") {
+			line += " {"
+		}
+		result.WriteString(line + "\n")
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error reading text:", err)
+	}
+
+	return result.String()
 }

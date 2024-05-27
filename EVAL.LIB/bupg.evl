@@ -1,0 +1,64 @@
+; “ƒ 24_4
+; à®¢¥à¥­® ¢ ’¥«¥¯ ­®¢®
+; ƒ «¥¥¢ 19.03.15
+
+;#INCLUDE "eval.lib\bupg24_4.evl"
+;x=BUPG_24_4(1,{ƒ ‘‘…† ’…‹},{ƒ ‘‘’„€ ’…‹})
+
+func BUPG_24_4(ba,cod,coda)
+ x=dout[(ba+0)]
+ if ne(cod&1,0)
+  x=0
+ else
+  if ne((cod&2),0)
+   x=1.
+  else
+   if ne((cod&4),0)
+    x=2
+   else
+    if ne((cod&8),0)
+     x=3
+    else
+     if ne((cod&16),0)
+      x=4
+     endif
+    endif
+   endif
+  endif
+ endif
+ dout[(ba+0)]=x
+ x=int(cod/256)
+ dout[(ba+1)]=ne(x&128,0)
+ dout[(ba+2)]=ne(codA&8,0)
+ dout[(ba+3)]=ne(codA&16,0)
+ dout[(ba+4)]=ne(codA&32,0)
+ dout[(ba+5)]=ne(codA&64,0)
+ dout[(ba+6)]=ne(codA&128,0)
+ x=int((codA/256))
+ dout[(ba+7)]=ne(x&8,0)
+ dout[(ba+8)]=ne(x&16,0)
+ dout[(ba+9)]=ne(x&32,0)
+ dout[(ba+10)]=ne(x&64,0)
+ dout[(ba+11)]=ne(x&128,0)
+ return 0
+endfunc
+
+func bupg243(bp,cod)
+  dout[bp+0]=ne(cod & 4, 0)
+  dout[bp+1]=ne(cod & 8, 0)
+  dout[bp+2]=ne(cod & 16, 0)
+  dout[bp+3]=ne(cod & 32, 0)
+  dout[bp+4]=ne(cod & 64, 0)
+  dout[bp+5]=ne(cod & 128, 0)
+  cod=int(cod/256)
+  dout[bp+6]=ne(cod & 1, 0)
+  dout[bp+7]=ne(cod & 2, 0)
+  dout[bp+8]=ne(cod & 4, 0)
+  dout[bp+9]=ne(cod & 8, 0)
+  cod=int(cod/256)
+  dout[bp+10]=ne(cod & 1, 0)
+  dout[bp+11]=ne(cod & 2, 0)
+  dout[bp+12]=ne(cod & 4, 0)
+  dout[bp+13]=ne(cod & 8, 0)
+  return(0)                                       
+endfunc

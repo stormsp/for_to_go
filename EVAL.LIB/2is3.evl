@@ -1,0 +1,144 @@
+func dostacc(sum,v1)
+ if(dost(v1))
+  sum=sum+v1
+ endif
+ return(sum)
+endfunc
+
+func pdostnearest(med,v1,v2)
+ if(dost(v1))
+   if(gt(abs(med-v1),abs(med-v2)))
+     return(v2)
+   endif
+   return(v1)
+ endif
+ return(v2)
+endfunc
+
+
+; возвращает индекс ближайшего из двух к среднему
+
+; val,i - значение и индекс измерения
+; dostval,di - значение и индекс достоверного измерения
+; если val достоверно, возвращает индекс ближайшего из двух к среднему
+; иначе водвращает di
+;
+func idostnearest(med,v1,i1,v2,i2,ii)
+  if(dost(v1)&dost(v2))
+    if(gt(abs(med-v1),abs(med-v2)+0.002)) ;+0.002 - чтобы убрать дребезг
+      return(i2)
+ 	else
+ 	  return(i1)
+	endif
+  else
+    return(ii)
+  endif
+endfunc
+
+; расчет индекса датчика давления для регулятора на двух эр-04
+; 0 - эр04-12, 1 - эр04-21, 2 - эр04-22, подача в том же порядке
+;
+func regp3i(p1,p2,p3,self)
+ 
+  i=0
+  c=0
+  p=0
+
+  if (dost(p1))
+    c=c+1
+    p=p+p1
+  endif
+  
+
+  if (dost(p2))
+    i=1
+    c=c+1
+    p=p+p2
+  endif
+
+  if (dost(p3))
+    i=2
+    c=c+1
+    p=p+p3
+  endif
+  
+
+  if(c) 
+    p=p/c
+    i=idostnearest(p,p1,0,p3,2,i)
+    i=idostnearest(p,p2,1,p1,0,i)
+    i=idostnearest(p,p3,2,p2,1,i)
+  else
+    i=self
+  endif
+
+  return(i)
+endfunc
+
+
+; выбор значения Рвых для регулятора по трем ан.датчикам
+; pself - текущее значение параметра
+;
+func regp3p(p1,p2,p3,self)
+
+  psum=dostacc(0,p1)
+  psum=dostacc(psum,p2)
+  psum=dostacc(psum,p3)
+
+  c=dost(p1)
+  p=p1
+
+  if(dost(p2))
+   c=c+1
+   p=p2
+  endif
+
+  if(dost(p3))
+   c=c+1
+   p=p3
+  endif
+   
+  if(c)
+   p=pdostnearest(psum/c,p1, p)
+   p=pdostnearest(psum/c,p2, p)
+   p=pdostnearest(psum/c,p3, p)
+  else
+   p=false(self)
+  endif
+  return(p)
+endfunc
+
+
+
+
+; ПС 2 из 3 меньше, если достоверен только 1 датчик, не вырабатывать
+; mux - множитель типа 90%
+; тратит 3 переменные
+; 
+
+func ps2is3Lt(p1,p2,p3,mux,pzad,T,vi)
+
+  a1=valTrackLt(p1,0.01*mux*pzad,T,vi)
+  a2=valTrackLt(p2,0.01*mux*pzad,T,vi+1)
+  a3=valTrackLt(p3,0.01*mux*pzad,T,vi+2)
+  if (ge(dost(p1)+dost(p3)+dost(p3),2))
+    return (ge(a1+a2+a3,2))
+  endif
+return(0)
+endfunc
+
+; ПС 2 из 3 больше, если достоверен только 1 датчик, не вырабатывать
+; mux - множитель типа 110%
+; тратит 3 переменные
+; 
+func ps2is3Gt(p1,p2,p3,mux,pzad,T,vi)
+
+  a1=valTrackGt(p1,0.01*mux*pzad,T,vi)
+  a2=valTrackGt(p2,0.01*mux*pzad,T,vi+1)
+  a3=valTrackGt(p3,0.01*mux*pzad,T,vi+2)
+  if (ge(dost(p1)+dost(p3)+dost(p3),2))
+    return (ge(a1+a2+a3,2))
+  return(a3)
+  endif
+return(0)
+endfunc

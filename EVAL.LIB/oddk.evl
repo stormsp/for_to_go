@@ -1,0 +1,86 @@
+; Библиотека для работы с одоризаторами ОДДК Газпроммаш
+; #include "eval.lib\oddk.evl"
+
+; vi    - номер свободной выходной переменной для таймеров  Требуется 2 шт. 
+; q1    - мгновенный расход газа по прибору учета газа
+; qz    - расход газа замещающий, при недостоверных 
+;	  	  данных с прибора учета газа (суперфло)
+; mode  - режим одоризации 
+;	  	  для ОДДК:  	нет
+
+; cnt_sys - #сист номер расхода газа одоризатора в который засылать
+; Т 	- период засылки.
+; ПРИМЕР ИСПОЛЬЗОВАНИЯ:
+; в ините 
+;  aout[16]=getticks(0)
+;  aout[17]=getticks(0)
+; в тексте
+;  x=setq_periodic(16,({МГН РАС-1 ДЮРТ}+{МГН РАС-2 ДЮРТ}),{QМГН ЗАМ ДЮРТ},{РЕЖ ОДОР ДЮРТ},{QГ ОДОР ДЮРТ}[sys_num],30)
+; или
+;  x=setq_one(({ПР СУТ-1 ДЮРТ}+{ПР СУТ-2 ДЮРТ})/24,{QМГН ЗАМ ДЮРТ},{QГ ОДОР ДЮРТ}[sys_num])
+
+
+func setq(q,cnt_sys)
+      if (dost(#[cnt_sys]))
+        if (gt(abs(#[cnt_sys]-q),5))  	; если расход мало изменился не засылаем
+          set cnt_sys,q
+        endif
+      endif
+endfunc
+
+func setq_one(q,qz,cnt_sys)
+  if dost(q)
+    x=setq(q,cnt_sys)
+  else
+    x=setq(qz,cnt_sys)
+  endif
+endfunc
+
+func setq_periodic(vi,q1,qz,cnt_sys,T)
+
+  if (ge(getticks(aout[vi])*ticksize(),T))
+    if (dost(q1))
+      x=setq(q1,cnt_sys)
+  else
+      if (valTrack(!dost(q1),60,vi+1)); если расход недост ждем 60 сек потом засылаем замещенный
+        x=setq(qz,cnt_sys)
+      endif
+    endif
+    aout[vi]=getticks(0)
+   endif
+
+return(0)
+endfunc
+
+func set_mode (dummy)
+  
+endfunc
+
+; устаревшая
+func oddk(vi,cod)
+  dout[vi+0]=ne(cod & 1, 0)	;НЕТ СВЯЗИ С МОД М7060 В БУО
+  dout[vi+1]=ne(cod & 2, 0)	;НЕТ СВЯЗИ С МОД М7060 В ОДДК
+  dout[vi+2]=ne(cod & 4, 0)	;НЕТ СВЯЗИ С МОД М-7017
+  dout[vi+3]=ne(cod & 8, 0)	;ОТСУТ СИГН ДАТ ПЕРЕПАДА ДАВЛ
+  dout[vi+4]=ne(cod & 16, 0)	;НЕТ ДОЗЫ
+  dout[vi+5]=ne(cod & 32, 0)	;НИЗКИЙ УРОВЕНЬ ОДОРАНТА
+  dout[vi+6]=ne(cod & 64, 0)	;ВСКРЫТИЕ БЛОКА
+  dout[vi+7]=ne(cod & 128, 0)	;ДОЗА НАСОСА НЕДОСТ (РАС ВЫС)
+  dout[vi+8]=ne(cod & 256, 0)	;ДОЗА НАСОСА ВЕЛИКА (РАС МАЛ)
+  dout[vi+9]=ne(cod & 512, 0)	;АВАРИЯ
+endfunc
+
+;новая
+func buo02(vi,cod)
+  dout[vi+0]=bit(cod,0)|bit(cod,1)|bit(cod,2) ; нет связи 7055; не связи 7060; нет связи 7017
+  dout[vi+1]=bit(cod,3) ; отс сигн перепада
+  dout[vi+2]=bit(cod,4) ; нет дозы
+  dout[vi+3]=bit(cod,5) ; низ ур одор
+  dout[vi+4]=bit(cod,6) ; вскрытие
+  dout[vi+5]=bit(cod,7) ;загазованность
+  dout[vi+6]=bit(cod,8) ;нет сигн. загазованности
+  dout[vi+7]=bit(cod,9) ;нет расхода
+  dout[vi+8]=bit(cod,10)+2*bit(cod,11) ; расход выс; расход низ
+  dout[vi+9]=bit(cod,14) ; одоризация невозможна
+  dout[vi+10]=bit(cod,15) ; авар одор
+endfunc

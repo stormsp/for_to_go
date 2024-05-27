@@ -1,0 +1,50 @@
+
+; ®―ΰ¥¤¥«¥­¨¥ α®αβ®ο­¨ο ƒ‘ ―® ªΰ ­ ¬
+
+func sost_grs(dummy) 
+
+ nitka1=ne({ ‹…„1 €‘},2)
+ nitka2=ne({ ‹…„2 €‘},2)
+
+ imp_on=0;{   ‚} & {€‹ƒ   ‚}
+
+ red_norma=(eq(nitka1,1)&eq(nitka2,1)) 
+ red_zakr=(eq(nitka1,0)&eq(nitka2,0))
+ red_1=!red_zakr&(eq(nitka1,0)|eq(nitka2,0))
+
+
+
+ pg_norma=(ne({ ƒ‚• €‘},2)&ne({ ƒ‚›• €‘},2))&eq({€ ƒ €‘},2)
+ pg_bp=(eq({ ƒ‚• €‘},2)|eq({ ƒ‚›• €‘},2))&eq({€ ƒ €‘},1)
+ pg_zakr=(eq({ ƒ‚• €‘},2)|eq({ ƒ‚›• €‘},2))&eq({€ ƒ €‘},2)
+
+
+ if (ne({€ • €‘},2)&ne({€ ‚•„ €‘},2)&ne({€ ‚›• €‘},2)&eq({€ €‰ €‘},2)&red_norma&pg_norma)
+  x=0; ΰ ΅®β  
+ else
+  if (eq({€ • €‘},2))
+    x=1; ®βª«ξη¥­  ®β ƒ
+  else
+    if (ne({€ €‰ €‘},2))
+      x=3; ­  ΅―
+    else
+      if (eq({€ ‚•„ €‘},2)|eq({€ ‚›• €‘},2)|(red_zakr & !imp_on)|pg_zakr)
+        x=2 ; ®αβ ­®Ά«¥­ 
+      else
+        if (red_1)
+	  x=4; ΰ ΅®β  α ®βª«ξη¥­­®© «ΰ
+	else
+	  if (red_zakr & imp_on)
+	    x=6 ; ¨¬―γ«μα­λ© ΰ¥¦¨¬
+	  else
+	    if (pg_bp)
+	      x=5; ΰ ΅®β  α ®βª«ξη ―£
+	    endif
+	  endif
+	endif
+      endif
+    endif
+  endif
+ endif
+ return(x)
+endfunc

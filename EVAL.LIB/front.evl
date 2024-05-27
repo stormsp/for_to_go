@@ -1,0 +1,13 @@
+; front 0-> ne 0
+; src - дискр сигнал
+; id - номер переменной слежения
+;
+func front(src,id)
+  x=0
+  if (dost(src)&ne(src,dout[id])&ne(src,0))
+    x=1
+  endif
+  dout[id]=src
+  return(x)
+endfunc
+

@@ -1,0 +1,61 @@
+; для вставки #include "eval.lib\ValTrack.evl"
+
+;
+; valTrack возращает 0 если val равен 0
+; или если с момента перехода val в состояние,
+; отличное от 0 не прошло timeout секунд.
+; В противном случае функция возвращает 1.
+;
+func valTrack(val,timeout,id)
+ if(eq(val,0))
+  aout[id]=0
+  return(0)
+ endif
+
+ ; aout[id] время перехода в состояние, отличное от 0
+ ; для вычисления тайм-аута (в тиках со старта зонда)
+ if(eq(aout[id],0))
+  aout[id]=getticks(0)
+ endif
+
+ if(ge(getticks(aout[id])*ticksize(),timeout))
+  return(1)
+ endif
+
+ return(0)
+endfunc
+
+;
+; valTrackGt и valTrackLt возращают 0 если отслеживаемый
+; параметр не достоверен, или если не нарушена
+; граница, или если со времени нарушения
+; не прошло timeout секунд. В противном случае
+; функции возвращают 1.
+;
+func valTrackGt(val,bound,timeout,id)
+ return(valTrack(ne(dost(val),0)&gt(val,bound),timeout,id))
+endfunc
+
+func valTrackLt(val,bound,timeout,id)
+ return(valTrack(ne(dost(val),0)&lt(val,bound),timeout,id))
+endfunc
+
+; при достоверности одного из трех каналов, недостоверный канал заменяется
+; значением параметров с ЭКМ давление на вых низкое, высокое
+;
+func valTrackLt_dost(val,bound,timeout,id,p_ekm) 
+  if (dost(val))
+    return(valTrack(lt(val,bound),timeout,id))
+  else
+    return(p_ekm)
+  endif
+endfunc
+
+
+func valTrackGt_dost(val,bound,timeout,id,p_ekm) 
+  if (dost(val))
+    return(valTrack(gt(val,bound),timeout,id))
+  else
+    return(p_ekm)
+  endif
+endfunc

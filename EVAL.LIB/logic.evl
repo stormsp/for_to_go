@@ -1,0 +1,17 @@
+; Логические элементы
+; 21.04.15
+; для вставки #include "eval.lib\logic.evl"
+
+;
+; управление при условии достоверности
+;
+func fnImpFront(sost,required,id)
+  x=0
+  if ne(sost,dout[id])&eq(sost,required)
+    x=1
+  endif
+  dout[id]=sost
+  return(x) ;если включили имп регулирование
+endfunc
+
+;

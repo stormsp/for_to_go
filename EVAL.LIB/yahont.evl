@@ -1,0 +1,153 @@
+; Библиотека для работы с Яхонт 4шл
+; #include "eval.lib\yahont.evl"
+; 
+
+; Состояние шлейфов
+; В паспорте должно быть:
+; 0- неопределенность, 1-норма, 2-пожар, 3-внимание
+;
+
+func yahont4(a,cod)
+  if (dost(cod))
+    if (eq(cod,0)|eq(cod,1)|eq(cod,2));неопр|кз|обрыв
+      dout[a]=0 ;--неопр
+    else
+      if (eq(cod,3));норма
+        dout[a]=1 ;--норма
+      else
+        if(eq(cod,4));вним
+          dout[a]=3
+        else
+          if (eq(cod,5));трев
+            dout[a]=2 ;--пожар
+          else                    
+            dout[a]=0 ;--неисправн
+          endif
+        endif
+      endif
+    endif
+  else
+    dout[a]=false(0)
+  endif
+return(0)
+endfunc
+
+
+; Состояние концевика 
+; В паспорте должно быть:
+; 0- неопределенность, 1-норма, 2-вскитые
+;
+
+func yahont41(a,cod)
+  if (eq(cod,0))   		; код 0-неопр
+    dout[a]=0
+  else
+    if (eq(cod,3))              ; код 3-норма
+      dout[a]=1
+    else
+      if (eq(cod,6))  		; код 6-трев
+        dout[a]=2
+      else
+        dout[a]=0		; код cбой
+      endif
+    endif
+  endif
+return(0)
+endfunc
+
+
+; Яхонт4 - 3 расч статус источника питания (неопр,норма,неиспр)
+; В паспорте должно быть:
+; 0- неопределенность, 1-норма, 2-нет питания
+;
+
+func yahont42(a,cod)
+  if (eq(cod,0))   		; код 0-неопр
+    dout[a]=0
+  else
+    if (eq(cod,3))              ; код 3-норма
+      dout[a]=1
+    else
+      if (eq(cod,6))  		; код 6-трев
+        dout[a]=2
+      else
+        dout[a]=0		; остальное cбой
+      endif
+    endif
+  endif
+return(0)
+endfunc
+
+
+; -------------------------- Яхонт16и -------------------------------
+; Состояние ПОЖАРНЫХ шлейфов
+; В паспорте должно быть:
+; 0- неопределенность, 1-норма, 2-пожар, 3-внимание
+;
+
+func yahont16_ps(a,cod)
+  if (dost(cod))
+    if (eq(cod,0)|eq(cod,1)|eq(cod,2))   		; 0-неопр; 1-кз 2-обрыв 6-обрыв
+      dout[a]=0                 ; ** неопр
+    else
+      if (eq(cod,3))  ; 3-норма
+        dout[a]=1               ; ** норма
+      else
+        if(eq(cod,4))   ; 4-вним
+          dout[a]=3
+        else
+          if (eq(cod,5))  	; 5-трев
+            dout[a]=2             ; ** пожар/дым
+          else                    
+            dout[a]=0		; ** неисправн
+          endif
+        endif
+      endif
+    endif
+  else
+    dout[a]=false(0)
+  endif
+return(0)
+endfunc
+
+
+; Состояние ОХРАННЫХ шлейфов 
+; В паспорте должно быть:
+; 0- неопределенность, 1-норма, 2-вскитые, 3- снят с охраны
+;
+
+func yahont16_os(a,cod)
+  if (eq(cod,135))   		; 0-неопр
+    dout[a]=0
+  else
+    if (eq(cod,132))              ; 3-норма
+      dout[a]=1
+    else
+      if (eq(cod,134))  		; 6-трев
+        dout[a]=2
+      else
+        if(eq(cod,129)|eq(cod,130)|eq(cod,131))
+ 	  dout[a]=3		; 6-снят
+        else
+          dout[a]=0		; cбой
+	endif
+      endif
+    endif
+  endif
+return(0)
+endfunc
+
+
+; --- Состояние источника питания ---
+; 0 - норма, 1- неисправность
+
+
+func yahont16_pit(a,cod) ;2 переменные
+    dout[a+0]=ne(cod&1,0)
+    dout[a+1]=ne(cod&256,0)
+endfunc
+
+
+
+
+

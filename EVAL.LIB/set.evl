@@ -1,0 +1,68 @@
+
+; 01.06.15
+; для вставки #include "eval.lib\set.evl"
+
+;
+; управление при условии достоверности
+;
+func setex(sys,value)
+ if(eq(dost(#[sys]),0))
+  return(0)
+ endif
+ set sys,value
+ return(1)
+endfunc
+
+;
+; setwex - аналог встроенной set_wait
+; однако, в случае не успеха
+; производится дополнительные 1 попытки
+; достигнуть заданного соcтояния
+;
+func setwex(sys,value,timeout)
+  if ne(set_wait(sys,value,timeout),0)
+    sleep(18)
+    return(set_wait(sys,value,timeout))
+  endif
+  return(0)
+endfunc
+
+;
+; impuls
+;
+func impuls(sys,t)
+  x=set_wait(sys,1,t)
+  sleep(2*18)
+  x=set_wait(sys,0,t)
+  return(x)
+endfunc
+
+
+
+; установка значения с заданной чувствительностью
+; возврат 1-установлено
+;         0-без реакции
+func setSens (sys,value,sens)
+  x=0
+  if (gt(abs(#[sys]-value),sens))
+    x=setex(sys,value)
+  endif
+  return(x)
+endfunc
+
+
+
+func setwex_dost(sys,value,timeout)
+  if(!dost(#[sys]))
+    return(0)
+  endif
+  return(set_wait(sys,value,timeout))
+endfunc
+
+
+
+
+
+
+
+

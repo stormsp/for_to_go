@@ -1,0 +1,30 @@
+; Алгоритм управления в определенные день и недели и час
+
+
+func oninit(t)
+  prevh=hour(time());
+endfunc
+
+
+
+
+a=time()
+curh=hour(a) ; текущий час
+weekd=weekday(a) ; день недели 0 - Воскресенье,1-понедельник, 2-вторник, ... 6 - Суббота.
+
+if eq(weekd,6) ; если суббота --------!день недели
+
+
+  if (ne(curh,prevh) & eq(curh,7) ;!----час включения
+    set {1ЭР03-1}[sys_num],1 ; !включить
+  endif
+
+
+  if (ne(curh,prevh) & eq(curh,21) ;!----час выключения
+    set {1ЭР03-1}[sys_num],0 ; !выключить
+  endif
+  
+endif
+
+prevh=curh
+

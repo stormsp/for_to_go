@@ -57,7 +57,7 @@ func main()
 		for i, param := range paramArray {
 			param = strings.TrimSpace(param)
 			// Добавляем проверку на "id" или "ID"
-			if strings.EqualFold(param, "id)") || strings.EqualFold(param, "timeout") {
+			if strings.EqualFold(param, "id)") || strings.EqualFold(param, "timeout") || strings.EqualFold(param, "id") {
 				paramArray[i] = param + " int"
 			} else {
 				paramArray[i] = param + " any"
@@ -237,7 +237,7 @@ func main()
 	code = strings.ReplaceAll(code, "x=0", "//x = 0")
 	//условия
 	//fmt.Println(code)
-	code = ReplaceAllStringRegexp(code, `(?i)IF\s*\((.+)\)`, `if $1 {`)
+	code = ReplaceAllStringRegexp(code, `(?i)if\s*\((.+)\)`, `if $1 {`)
 	//code = ReplaceAllStringRegexp(code, `(?i)\bIF\s*\(([^)]+)\)\s*(?![^{]*})`, `if ($1) {`)
 
 
@@ -248,6 +248,12 @@ func main()
 	code = strings.ReplaceAll(code, "convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value*1.15)", "convertToInteger(convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value)*convertToInteger(1.15))")
 	code = strings.ReplaceAll(code, "return(SET_WAIT(sys,state,timeout))\n}", "return(SET_WAIT(sys,state,timeout))\n}\n return false")
 	code = strings.ReplaceAll(code, "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей", "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей\n return (t)")
+	//для демонстрации
+	code = strings.ReplaceAll(code, "if (convertToInteger(valTrack(Reps[\"КН АВОСТ КРАС\"].Value) == convertToInteger(4,8)),1) {", "if (convertToInteger(valTrack(Reps[\"КН АВОСТ КРАС\"].Value, 4, 8)) == convertToInteger(1)) {")
+	code = strings.ReplaceAll(code, "return(0)", "return(false)")
+	code = strings.ReplaceAll(code, "return(1)", "return(true)")
+	code = strings.ReplaceAll(code, "func setSens(sys any, value any, sens any) any {", "func setSens(sys float64, value float64, sens any) any {")
+
 
 	return code
 }
@@ -257,6 +263,7 @@ func main() {
 
 import (
 	"time"
+	"math"
 )
 
 var aout [100]int
@@ -275,7 +282,8 @@ var x bool
 
 	// Сохранение данных в переменной code
 	inputCode := string(fileContent)
-	outputCode := translate_for_to_go(inputCode)
+	outputCode1 := translate_for_to_go(inputCode)
+	outputCode := addBracesToIfStatements(outputCode1)
 	codeFinal := code + outputCode + "\n}"
 
 	// Запись данных в файл "output.go"

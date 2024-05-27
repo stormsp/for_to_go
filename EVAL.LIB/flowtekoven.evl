@@ -1,0 +1,78 @@
+; Библиотека для работы с одоризатором flowtek
+; #include "eval.lib\flowtek.evl"
+
+func flowtek(n, cod1, cod2)
+  b1=COD1&255
+  b2=int(COD1/256)
+  b3=COD2&255
+  b4=int(COD2/256)
+
+  dout[n+0]=(ne(b3 & 2,0)*2)+ne(b1 & 1,0) ; протечка ит низ-выс
+  dout[n+1]=ne(b1 & 2,0)      ; дозир нет протока
+  dout[n+2]=ne(b1 & 4,0)      ; наполн нет протока
+  dout[n+3]=ne(b1 & 8,0)      ; связь с датч р
+  dout[n+6]=ne(b2 & 128,0)      ; Т выс
+  dout[n+7]=ne(b1 & 32,0)     ; 220
+  dout[n+8]=ne(b1 & 64,0)     ; автомат откл
+  dout[n+9]= 2*ne(b4 & 8,0)+ ne(b4 & 16,0) ; уровень низ-выс
+
+  if (ne(b2 & 2,0)) ; p1 неисправен
+    dout[n+4]=3
+  else
+    dout[n+4]=(ne(b2 & 8,0)*2)+ne(b2 & 16,0);р1 низ-выс
+  endif
+  
+  if (ne(b2 & 4,0)) ; p2 неисправен
+    dout[n+5]=3
+  else
+    dout[n+5]=(ne(b2 &32,0)*2)+ne(b2 & 64,0)  ; р2 низ-выс
+  endif
+
+endfunc
+
+; vi    - номер свободной выходной переменной для таймеров
+; 	  	  Требуется 2 шт.
+; q1    - мгновенный расход газа по прибору учета газа
+; qz    - расход газа замещающий, при недостоверных 
+;	  	  данных с прибора учета газа (суперфло)
+; mode  - режим одоризации 
+;    	  для flowtek: 	0-настройка
+;			1-полуавтомат 
+;	  	    2-автоматическое получение расхода газа от САУ(требуется засылка)
+; cnt_sys - #сист номер расхода газа одоризатора в который засылать
+; Т 	- период засылки.
+
+func setq(q,cnt_sys)
+      if (dost(#[cnt_sys]))
+        if (gt(abs(#[cnt_sys]-q),5))  	; если расход мало изменился не засылаем
+          set cnt_sys,q
+        endif
+      endif
+endfunc
+
+func setq_one(q,qz,cnt_sys)
+  if dost(q)
+    x=setq(q,cnt_sys)
+  else
+    x=setq(qz,cnt_sys)
+  endif
+endfunc
+
+func setq_periodic(vi,q1,qz,mode,cnt_sys,T)
+  if (ne(mode,2)) ; не автомат расход
+	return(0)
+  endif
+
+  if (ge(getticks(aout[vi])*ticksize(),T))
+    if (dost(q1))
+      x=setq(q1,cnt_sys)
+    else
+      if (valTrack(!dost(q1),60,vi+1)); если расход недост ждем 60 сек потом засылаем замещенный
+        x=setq(qz,cnt_sys)
+      endif
+    endif
+    aout[vi]=getticks(0)
+   endif
+
+endfunc
+

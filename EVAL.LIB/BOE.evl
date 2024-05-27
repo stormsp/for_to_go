@@ -1,0 +1,26 @@
+; boe-20
+;
+
+func boe20_av(bo,cod)                           	
+  dout[bo+0]=ne(cod & 1, 0)                     ; отказ уу
+  dout[bo+1]=(ne(cod & 4, 0)*2)|ne(cod & 2, 0)  ; кз,обр ц клап нас
+  dout[bo+2]=ne(cod & 8, 0)                     ; отказ нас
+  dout[bo+3]=ne(cod & 16, 0)                    ; ош загр парам
+  return(0)                                       
+endfunc
+
+func boe20_pr(bo,cod)
+  dout[bo+0]=ne(cod & 1, 0)      	        	; тцик меньше доп
+  dout[bo+1]=ne(cod & 2, 0)                             ; низ ур од
+  dout[bo+2]=ne(cod & 4, 0)                             ; отказ д ур од
+  dout[bo+3]=ne(cod & 8, 0)                             ; отказ д т шк
+  dout[bo+4]=ne(cod & 16, 0)                            ; протеч нас
+  dout[bo+5]=(ne(cod & 64, 0)*2)|ne(cod & 32, 0)        ; т бл мин-макс
+  cod1=int(cod/256)                                     
+  dout[bo+6]=(ne(cod1 & 1, 0)*2)|ne(cod & 128, 0)       ; uпит низ-выс
+  dout[bo+7]=(ne(cod1 & 4, 0)*2)|ne(cod1 & 2, 0)        ; т шк низ-выс
+  dout[bo+8]=(ne(cod1 & 16, 0)*2)|ne(cod1 & 8, 0)       ; обр-кз нагр шк
+  dout[bo+9]=ne(cod1 & 32, 0)                           ; изм веса неиспр
+  return(0)                                       
+endfunc
+
