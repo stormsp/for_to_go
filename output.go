@@ -94,7 +94,7 @@ func valTrackGt_DOST(val any, bound any, timeout int, id int, p_ekm any) any {
 //
 // управление при условии достоверности
 //
-func setex(sys any, value any) any {
+func setex(sys any, value any) bool {
 	if (convertToInteger(DOST(sys)) == convertToInteger(0)) {
   return(false)
 }
@@ -131,9 +131,9 @@ func impuls(sys any, t any) any {
 // установка значения с заданной чувствительностью
 // возврат 1-установлено
 //         0-без реакции
-func setSens(sys float64, value float64, sens any) any {
+func setSens(sys int, value int, sens any) any {
 	//x = 0
-  if (convertToInteger(math.Abs(sys-value)) > convertToInteger(sens)) {
+  if (convertToInteger(math.Abs(float64(sys - value))) > convertToInteger(sens)) {
     x=setex(sys,value)
 }
   return(x)
@@ -161,10 +161,10 @@ func setwex_DOST(sys any, value any, timeout any) any {
 // src - дискр сигнал
 // id - номер переменной слежения
 //
-func front(src any, id int) any {
+func front(src int, id int) bool {
 	//x = 0
   if DOST(src) && convertToInteger(src) != convertToInteger(dout[id]) && convertToInteger(src) != convertToInteger(0) {
-    x=1
+    x=true
 }
   dout[id]=src
   return(x)
@@ -181,7 +181,7 @@ func front(src any, id int) any {
         // - Пожар в блоке переключения (при наличии пож.сигнализации)
         // - Пожар в блоке одоризации (при наличии пож.сигнализации)
 //-------------------------------------------------------------------------------
-func checkFire(dummy any) any {
+func checkFire(dummy any) bool {
 	//x = 0
   x=x || Reps["ПОЖАР ОПЕ КРАС"].Value //<Пожар в операторной>.
   x=x || Reps["ПОЖАР ПЕР КРАС"].Value //<Пожар в блоке переключения>.
@@ -191,12 +191,13 @@ func checkFire(dummy any) any {
 
 
 func checkPrecond(dummy any) any {
+	var x bool
 	//x = 0
   if convertToInteger(Reps["РЕЖИМ ГРС КРАС"].Value) != convertToInteger(0) {
-    x=x+Reps["КОМ АО КРАС"].Value  //1 команда - без условий
+    x=x||Reps["КОМ АО КРАС"].Value  //1 команда - без условий
     if (convertToInteger(valTrack(Reps["КН АВОСТ КРАС"].Value, 4, 8)) == convertToInteger(1)) {    // кнопка - только при аварийной ситуации {
-      x=x+2*checkFire(0)        //2 Пожар
-      x=x+3*Reps["РВЫХ123АВ КРАС"].Value    //3 Аварийно-высокое давление
+      x=x||checkFire(false)        //2 Пожар
+      x=x||Reps["РВЫХ123АВ КРАС"].Value    //3 Аварийно-высокое давление
 }
 }
   return(x)
@@ -208,20 +209,21 @@ func oninit(t any) any {
  dout[2]=0
  dout[3]=0
  aout[4]=0
- aout[5]=TRUE(Reps["ДАТА АО КРАС"].Value)
- aout[6]=TRUE(Reps["ДАТА ЗАО КРАС"].Value)
+ aout[5]=1
+ aout[6]=1
 
  // ждем первого опроса модулей
  time.Sleep((10*18) * time.Second)
+ return nil
 }
 
 func main() {
-reason=checkPrecond(0)
+reason:=checkPrecond(0)
 if convertToInteger(reason) != convertToInteger(0) {
 
    dout[2]=1	// ход ао
-   dout[3]=reason
-   aout[5]=time.Now().Unix()
+   dout[3]=convertToInteger(reason)
+   aout[5]=int(time.Now().Unix())
 
    // закрыть охранный кран
    x=setwex(Reps["КРАН ОХР КРАС"].sys_num,1,40)
@@ -267,10 +269,10 @@ time.Sleep((5*18) * time.Second)
    dout[1]=0	// ком ао (возм причина)
    dout[2]=0
 
-   aout[6]=time.Now().Unix()
+   aout[6]=int(time.Now().Unix())
 }
 
-if front(convertToInteger(Reps["РЕЖИМ ГРС КРАС"].Value) != convertToInteger(0),9) {
+if front(convertToInteger(convertToInteger(Reps["РЕЖИМ ГРС КРАС"].Value) != convertToInteger(0)),9) {
   dout[3]=0
 }
 
