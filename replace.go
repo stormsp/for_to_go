@@ -8,6 +8,17 @@ import (
 	"strings"
 )
 
+type Rep struct {
+	sys_num int
+	SYS_NUM int
+	Value   float32
+}
+
+var aout [100]int
+var dout [100]int
+
+var Reps map[string]Rep
+
 func translate_for_to_go(code string) string {
 
 	//добавляем func main() после последнего endfunc
