@@ -11,6 +11,7 @@ import (
 	"os"
 	"bufio"
 	"strings"
+	PKG "AlgorithmsRabbit/connections"
 )
 
 // TODO: nmin, nmax,dost, true,false, cyclesec,execsec,
@@ -74,7 +75,7 @@ func ReplaceExpressions(text string, reps map[string]Rep) string {
 	result := re.ReplaceAllStringFunc(text, func(match string) string {
 		repName := match[1 : len(match)-1] // Извлекаем имя репера из скобок
 		if _, found := reps[repName]; found {
-			return fmt.Sprintf("Reps[\"%s\"].Value", repName)
+			return fmt.Sprintf("val(\"%s\")", repName)
 		}
 		return match // Если репер не найден, оставляем выражение без изменений
 	})
@@ -124,12 +125,13 @@ func NMAX(values ...float32) (float32, error) {
 }
 
 //логические функции
-// DOST проверяет достоверность переменной по её имени
-func DOST(varName any) bool {
-	if valid, exists := database[varName]; exists && valid {
-		return true
-	}
-	return false
+// dost проверяет достоверность переменной по её имени
+
+func dost(Raper string) bool {
+	PKG.InputMap.Mu.Lock()
+	value := PKG.InputMap.Out[Raper].Reliability
+	PKG.InputMap.Mu.Unlock()
+	return value
 }
 // TRUE всегда возвращает true, независимо от входных аргументов
 func TRUE(args ...interface{}) bool {
@@ -210,24 +212,24 @@ func MAKETIMER(hour, min, sec, msec int) time.Time {
 
 
 //функции счетчиков тиков
-func GETTICKS(prevTickCnt int) int {
-	currentTickCnt := int(time.Now().UnixNano() / int64(time.Millisecond))
+func GETTICKS(prevTickCnt float32) float32 {
+	currentTickCnt := float32(time.Now().UnixNano() / int64(time.Millisecond))
 	if prevTickCnt != 0 {
 		return currentTickCnt - prevTickCnt
 	}
 	return currentTickCnt
 }
 
-func TICKSIZE() int {
+func TICKSIZE() float32 {
 	// Засекаем начальное время
 	startTime := time.Now()
 	// Засекаем конечное время после прошедшей одной секунды
 	time.Sleep(1 * time.Second)
 	endTime := time.Now()
 	// Рассчитываем разницу в секундах и преобразуем её в int
-	duration := int(endTime.Sub(startTime).Seconds())
+	duration := float32(endTime.Sub(startTime).Seconds())
 	// Выводим разницу в секундах
-	fmt.Printf("TICKSIZE: %d seconds\n", duration)
+	//fmt.Printf("TICKSIZE: %d seconds\n", duration)
 	// Возвращаем значение
 	return duration
 }
@@ -376,15 +378,21 @@ func pidreg(
 
 
 //функции алгоритмов управления
-func SET(parameter *float32, value float32) {
-	*parameter = value
-}
+//func SET(parameter string, value float32) {
+//	val(parameter) = value
+//}
 
-func SET_WAIT(parameter *float32, value float32, timeout any) bool {
-	//fmt.Println(*parameter, float32(value))
-	*parameter = value
-	//fmt.Println(*parameter, value)
-	return true
+func set_wait(parameter string, value float32, timeout float64) float32 {
+	timeStart := time.Now()
+	for {
+		if val(parameter) == value {
+			return 1
+		}
+		if time.Since(timeStart).Seconds() > timeout {
+			return 0
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
 }
 
 
@@ -413,21 +421,6 @@ func isInt(val RepsValue) bool {
 	return ok
 }
 
-// getBoolValue возвращает булево значение из RepsValue
-func convertToInteger(value RepsValue) int {
-	switch v := value.(type) {
-	case bool:
-		if v {
-			return 1
-		}
-		return 0
-	case int:
-		return v
-	default:
-		// По умолчанию возвращаем 0 или другое значение по вашему усмотрению
-		return 0
-	}
-}
 
 func reset(param int) error {
 	if param == -1 {
@@ -510,23 +503,23 @@ func addBracesToIfStatements(code string) string {
 
 //Библиотеки __________________________________________________________________________________________________________
 //valTrack.evl
-func valTrack(val any, timeout float32, id float32) bool {
-	if (convertToInteger(val) == convertToInteger(0)) {
+func valTrack(val1 any, timeout float32, id float32) float32 {
+	if (val1) == (0) {
 		aout[int(id)]=0
-		return(false)
+		return(0)
 	}
 
 	// aout[id] время перехода в состояние, отличное от 0
 	// для вычисления тайм-аута (в тиках со старта зонда)
-	if (convertToInteger(aout[int(id)]) == convertToInteger(0)) {
+	if ((aout[int(id)]) == (0)) {
 		aout[int(id)]=GETTICKS(0)
 	}
 
-	if (convertToInteger(GETTICKS(aout[int(id)])*TICKSIZE()) >= convertToInteger(timeout)) {
-		return(true)
+	if ((GETTICKS(aout[int(id)])*TICKSIZE()) >= (timeout)) {
+		return(1)
 	}
 
-	return(false)
+	return(0)
 }
 
 //
@@ -536,29 +529,29 @@ func valTrack(val any, timeout float32, id float32) bool {
 // не прошло timeout секунд. В противном случае
 // функции возвращают 1.
 //
-func valTrackGt(val float32, bound float32, timeout float32, id float32) bool {
-	return(valTrack(convertToInteger(DOST(val)) != convertToInteger(0) && (convertToInteger(val) > convertToInteger(bound)),timeout,id))
+func valTrackGt(val1 string, bound float32, timeout float32, id float32) float32 {
+	return(valTrack((dost(val1)) != false && (val(val1) > bound),timeout,id))
 }
 
-func valTrackLt(val any, bound any, timeout float32, id float32) bool {
-	return(valTrack(convertToInteger(DOST(val)) != convertToInteger(0) && (convertToInteger(val) < convertToInteger(bound)),timeout,id))
+func valTrackLt(val1 string, bound float32, timeout float32, id float32) float32 {
+	return(valTrack((dost(val1)) != false && (val(val1) < bound),timeout,id))
 }
 
 // при достоверности одного из трех каналов, недостоверный канал заменяется
 // значением параметров с ЭКМ давление на вых низкое, высокое
 //
-func valTrackLt_DOST(val any, bound any, timeout float32, id float32, p_ekm any) any {
-	if DOST(val) {
-		return(valTrack((convertToInteger(val) < convertToInteger(bound)),timeout,id))
+func valTrackLt_dost(val1 string, bound string, timeout float32, id float32, p_ekm float32) float32 {
+	if dost(val1) {
+		return(valTrack((val(val1) < val(bound)),timeout,id))
 	} else {
 		return(p_ekm)
 	}
 }
 
 
-func valTrackGt_DOST(val any, bound any, timeout float32, id float32, p_ekm any) any {
-	if DOST(val) {
-		return(valTrack((convertToInteger(val) > convertToInteger(bound)),timeout,id))
+func valTrackGt_dost(val1 string, bound string, timeout float32, id float32, p_ekm float32) float32 {
+	if dost(val1) {
+		return(valTrack((val(val1) > val(bound)),timeout,id))
 	} else {
 		return(p_ekm)
 	}
@@ -566,27 +559,27 @@ func valTrackGt_DOST(val any, bound any, timeout float32, id float32, p_ekm any)
 
 
 //	yahont.evl
-func yahont4(a int, cod any) {
-	if DOST(cod) {
-		if (convertToInteger(cod) == convertToInteger(0)) || (convertToInteger(cod) == convertToInteger(1)) || (convertToInteger(cod) == convertToInteger(2)) {//неопр || кз || обрыв {
-			dout[a]=0 //--неопр
+func yahont4(a float32, cod string) {
+	if dost(cod) {
+		if (val(cod) == (0)) || (val(cod) == (1)) || (val(cod) == (2)) {//неопр || кз || обрыв {
+			dout[int(a)]=0 //--неопр
 		} else {
-			if (convertToInteger(cod) == convertToInteger(3)) {//норма {
-				dout[a]=1 //--норма
+			if (val(cod) == (3)) {//норма {
+				dout[int(a)]=1 //--норма
 			} else {
-				if (convertToInteger(cod) == convertToInteger(4)) {//вним {
-					dout[a]=3
+				if (val(cod) == (4)) {//вним {
+					dout[int(a)]=3
 				} else {
-					if (convertToInteger(cod) == convertToInteger(5)) {//трев {
-						dout[a]=2 //--пожар
+					if (val(cod) == (5)) {//трев {
+						dout[int(a)]=2 //--пожар
 					} else {
-						dout[a]=0 //--неисправн
+						dout[int(a)]=0 //--неисправн
 					}
 				}
 			}
 		}
 	} else {
-		dout[a]=0
+		dout[int(a)]=0
 	}
 }
 
@@ -597,13 +590,13 @@ func yahont4(a int, cod any) {
 //
 
 func yahont41(a int, cod any) any {
-	if (convertToInteger(cod) == convertToInteger(0)) {   		// код 0-неопр {
+	if ((cod) == (0)) {   		// код 0-неопр {
 		dout[a]=0
 	} else {
-		if (convertToInteger(cod) == convertToInteger(3)) {              // код 3-норма {
+		if ((cod) == (3)) {              // код 3-норма {
 			dout[a]=1
 		} else {
-			if (convertToInteger(cod) == convertToInteger(6)) {  		// код 6-трев {
+			if ((cod) == (6)) {  		// код 6-трев {
 				dout[a]=2
 			} else {
 				dout[a]=0		// код cбой
@@ -620,13 +613,13 @@ func yahont41(a int, cod any) any {
 //
 
 func yahont42(a int, cod any) any {
-	if (convertToInteger(cod) == convertToInteger(0)) {   		// код 0-неопр {
+	if ((cod) == (0)) {   		// код 0-неопр {
 		dout[a]=0
 	} else {
-		if (convertToInteger(cod) == convertToInteger(3)) {              // код 3-норма {
+		if ((cod) == (3)) {              // код 3-норма {
 			dout[a]=1
 		} else {
-			if (convertToInteger(cod) == convertToInteger(6)) {  		// код 6-трев {
+			if ((cod) == (6)) {  		// код 6-трев {
 				dout[a]=2
 			} else {
 				dout[a]=0		// остальное cбой
@@ -643,27 +636,27 @@ func yahont42(a int, cod any) any {
 // 0- неопределенность, 1-норма, 2-пожар, 3-внимание
 //
 
-func yahont16_ps(a int, cod any) any {
-	if DOST(cod) {
-		if (convertToInteger(cod) == convertToInteger(0)) || (convertToInteger(cod) == convertToInteger(1)) || (convertToInteger(cod) == convertToInteger(2)) {   		// 0-неопр// 1-кз 2-обрыв 6-обрыв {
-			dout[a]=0                 // ** неопр
+func yahont16_ps(a float32, cod string) any {
+	if dost(cod) {
+		if (val(cod) == (0)) || (val(cod) == (1)) || (val(cod) == (2)) {   		// 0-неопр// 1-кз 2-обрыв 6-обрыв {
+			dout[int(a)]=0                 // ** неопр
 		} else {
-			if (convertToInteger(cod) == convertToInteger(3)) {  // 3-норма {
-				dout[a]=1               // ** норма
+			if (val(cod) == (3)) {  // 3-норма {
+				dout[int(a)]=1               // ** норма
 			} else {
-				if (convertToInteger(cod) == convertToInteger(4)) {   // 4-вним {
-					dout[a]=3
+				if (val(cod) == (4)) {   // 4-вним {
+					dout[int(a)]=3
 				} else {
-					if (convertToInteger(cod) == convertToInteger(5)) {  	// 5-трев {
-						dout[a]=2             // ** пожар/дым
+					if (val(cod) == (5)) {  	// 5-трев {
+						dout[int(a)]=2             // ** пожар/дым
 					} else {
-						dout[a]=0		// ** неисправн
+						dout[int(a)]=0		// ** неисправн
 					}
 				}
 			}
 		}
 	} else {
-		dout[a]=0
+		dout[int(a)]=0
 	}
 	return(false)
 }
@@ -675,16 +668,16 @@ func yahont16_ps(a int, cod any) any {
 //
 
 func yahont16_os(a int, cod any) any {
-	if (convertToInteger(cod) == convertToInteger(135)) {   		// 0-неопр {
+	if ((cod) == (135)) {   		// 0-неопр {
 		dout[a]=0
 	} else {
-		if (convertToInteger(cod) == convertToInteger(132)) {              // 3-норма {
+		if ((cod) == (132)) {              // 3-норма {
 			dout[a]=1
 		} else {
-			if (convertToInteger(cod) == convertToInteger(134)) {  		// 6-трев {
+			if ((cod) == (134)) {  		// 6-трев {
 				dout[a]=2
 			} else {
-				if (convertToInteger(cod) == convertToInteger(129)) || (convertToInteger(cod) == convertToInteger(130)) || (convertToInteger(cod) == convertToInteger(131)) {
+				if ((cod) == (129)) || ((cod) == (130)) || ((cod) == (131)) {
 					dout[a]=3		// 6-сн¤т
 				} else {
 					dout[a]=0		// cбой
@@ -700,10 +693,11 @@ func yahont16_os(a int, cod any) any {
 // 0 - норма, 1- неисправность
 
 
-func yahont16_pit(a int, cod int) {
+func yahont16_pit(a float32, cod float32) {
 	//2 переменные
-	dout[a+0]=convertToInteger(convertToInteger(cod * 1) != convertToInteger(0))
-	dout[a+1]=convertToInteger(convertToInteger(cod * 256) != convertToInteger(0))
+	codInt := int(cod)
+	dout[int(a)+0]= float32(ne(codInt&1, 0))
+	dout[int(a)+1]= float32(ne(codInt&256, 0))
 }
 
 //bupg24_3.evl
@@ -740,32 +734,32 @@ func yahont16_pit(a int, cod int) {
 
 func bupg243(bp int, cod float32) int {
 	codInt := int(cod)
-	dout[bp+0] = ne(codInt&4, 0)     // Перегрев
-	dout[bp+1] = ne(codInt&8, 0)     // Ргаза высокое
-	dout[bp+2] = ne(codInt&16, 0)    // Ргаза низкое
-	dout[bp+3] = ne(codInt&32, 0)    // Ртн высокое
-	dout[bp+4] = ne(codInt&64, 0)    // Ртн низкое
-	dout[bp+5] = ne(codInt&128, 0)   // Разряжение низкое
+	dout[bp+0] = float32 (ne(codInt&4, 0)  )   // Перегрев
+	dout[bp+1] = float32 (ne(codInt&8, 0)  )   // Ргаза высокое
+	dout[bp+2] = float32 (ne(codInt&16, 0) )   // Ргаза низкое
+	dout[bp+3] = float32 (ne(codInt&32, 0) )   // Ртн высокое
+	dout[bp+4] = float32 (ne(codInt&64, 0) )   // Ртн низкое
+	dout[bp+5] = float32 (ne(codInt&128, 0))   // Разряжение низкое
 	codInt = codInt / 256
-	dout[bp+6] = ne(codInt&1, 0)     // Уровень тн низкий
-	dout[bp+7] = ne(codInt&2, 0)     // Прорыв газа
-	dout[bp+8] = ne(codInt&4, 0)     // Пламя 0-нет 1-есть
-	dout[bp+9] = ne(codInt&8, 0)     // Расход низкий
-	dout[bp+10] = ne(codInt&16, 0)   // Давление запальника высокое
-	dout[bp+11] = ne(codInt&32, 0)   // Загазованность
-	dout[bp+12] = ne(codInt&64, 0)   // Пламя отсутств(3М), Неиспр датч температуры тн
-	dout[bp+13] = ne(codInt&128, 0)  // Неиспр датч температуры(3М) вых газа
+	dout[bp+6] = float32(ne(codInt&1, 0))     // Уровень тн низкий
+	dout[bp+7] = float32(ne(codInt&2, 0))     // Прорыв газа
+	dout[bp+8] = float32(ne(codInt&4, 0))     // Пламя 0-нет 1-есть
+	dout[bp+9] = float32(ne(codInt&8, 0))     // Расход низкий
+	dout[bp+10] = float32(ne(codInt&16, 0) )  // Давление запальника высокое
+	dout[bp+11] = float32(ne(codInt&32, 0) )  // Загазованность
+	dout[bp+12] = float32(ne(codInt&64, 0) )  // Пламя отсутств(3М), Неиспр датч температуры тн
+	dout[bp+13] = float32(ne(codInt&128, 0))  // Неиспр датч температуры(3М) вых газа
 	return 0
 }
 
 func bupg243_klap(bp int, cod float32) int {
 	codInt := int(cod)
-	dout[bp+0] = ne(codInt&2, 0)     // клапан запальника
-	dout[bp+1] = ne(codInt&4, 0)     // клапан отсекателя
-	dout[bp+2] = ne(codInt&8, 0)     // клапан б.горения
-	dout[bp+3] = ne(codInt&16, 0)    // сигнал аварии
-	dout[bp+4] = ne(codInt&32, 0)    // звук сигнала аварии
-	dout[bp+5] = ne(codInt&64, 0)    // клапан безопасности
+	dout[bp+0] = float32(ne(codInt&2, 0) )    // клапан запальника
+	dout[bp+1] = float32(ne(codInt&4, 0) )    // клапан отсекателя
+	dout[bp+2] = float32(ne(codInt&8, 0) )    // клапан б.горения
+	dout[bp+3] = float32(ne(codInt&16, 0))    // сигнал аварии
+	dout[bp+4] = float32(ne(codInt&32, 0))    // звук сигнала аварии
+	dout[bp+5] = float32(ne(codInt&64, 0))    // клапан безопасности
 	return 0
 }
 
@@ -824,28 +818,28 @@ func bomOven(bp int, cod1, cod2 float32) {
 	cod1Int := int(cod1)
 	cod2Int := int(cod2)
 
-	dout[bp+0] = ne(cod1Int & 2, 0)        // Клапан заправки
-	dout[bp+1] = ne(cod1Int & 4, 0)        // Клапан пульсатора
-	dout[bp+2] = ne(cod1Int & 16, 0)       // Клапан сброса
-	dout[bp+3] = ne(cod1Int & 32, 0)       // Проникновение в одоризатор
+	dout[bp+0] = float32(ne(cod1Int & 2, 0) )       // Клапан заправки
+	dout[bp+1] = float32(ne(cod1Int & 4, 0) )       // Клапан пульсатора
+	dout[bp+2] = float32(ne(cod1Int & 16, 0))       // Клапан сброса
+	dout[bp+3] = float32(ne(cod1Int & 32, 0))       // Проникновение в одоризатор
 	//cod := cod1Int / 256
-	dout[bp+4] = ne(cod1Int & 2, 0) + 2*ne(cod1Int & 4, 0)  // Низкая/Высокая температура
-	dout[bp+5] = ne(cod1Int & 8, 0)                         // Высокое давление в коллекторе
-	dout[bp+6] = ne(cod1Int & 16, 0)                        // Высокий перепад давления
-	dout[bp+7] = ne(cod1Int & 32, 0) + 2*ne(cod1Int & 64, 0) // Низкий/Высокий уровень в расходной емкости
-	dout[bp+8] = ne(cod1Int & 128, 0)                       // Ошибка выдачи дозы
+	dout[bp+4] = float32(ne(cod1Int & 2, 0) + 2*ne(cod1Int & 4, 0))  // Низкая/Высокая температура
+	dout[bp+5] = float32(ne(cod1Int & 8, 0))                         // Высокое давление в коллекторе
+	dout[bp+6] = float32(ne(cod1Int & 16, 0))                        // Высокий перепад давления
+	dout[bp+7] = float32(ne(cod1Int & 32, 0) + 2*ne(cod1Int & 64, 0)) // Низкий/Высокий уровень в расходной емкости
+	dout[bp+8] = float32(ne(cod1Int & 128, 0)  )                     // Ошибка выдачи дозы
 
-	dout[bp+9] = ne(cod2Int & 1, 0)         // Авария
-	dout[bp+10] = ne(cod2Int & 2, 0)        // Пожар
-	dout[bp+11] = ne(cod2Int & 4, 0)        // Обрыв датчика потока
-	dout[bp+12] = ne(cod2Int & 8, 0)        // Неисправность датчика давления в коллекторе
-	dout[bp+13] = ne(cod2Int & 16, 0)       // Неисправность датчика давления в емкости
-	dout[bp+14] = ne(cod2Int & 32, 0)       // Неисправность сигнализатора уровня
-	dout[bp+15] = ne(cod2Int & 64, 0)       // Неисправность датчика температуры
+	dout[bp+9] =  float32(ne(cod2Int & 1, 0) )        // Авария
+	dout[bp+10] = float32(ne(cod2Int & 2, 0) )       // Пожар
+	dout[bp+11] = float32(ne(cod2Int & 4, 0) )       // Обрыв датчика потока
+	dout[bp+12] = float32(ne(cod2Int & 8, 0) )       // Неисправность датчика давления в коллекторе
+	dout[bp+13] = float32(ne(cod2Int & 16, 0))       // Неисправность датчика давления в емкости
+	dout[bp+14] = float32(ne(cod2Int & 32, 0))       // Неисправность сигнализатора уровня
+	dout[bp+15] = float32(ne(cod2Int & 64, 0))       // Неисправность датчика температуры
 	//cod = cod2Int / 256
-	dout[bp+16] = ne(cod2Int & 1, 0)        // РИП норма
-	dout[bp+17] = ne(cod2Int & 2, 0)        // РИП батарея норма
-	dout[bp+18] = ne(cod2Int & 8, 0)        // Пульсатор
+	dout[bp+16] = float32(ne(cod2Int & 1, 0))        // РИП норма
+	dout[bp+17] = float32(ne(cod2Int & 2, 0))        // РИП батарея норма
+	dout[bp+18] = float32(ne(cod2Int & 8, 0))        // Пульсатор
 }
 
 //vbp.evl
@@ -862,34 +856,37 @@ func bomOven(bp int, cod1, cod2 float32) {
 // Vpsut - объем газа за прошлые сутки
 // ba - базовый адрес
 
-func Vbp(kr_bp float32, Vpsut float32, ba int) {
-	if convertToInteger(kr_bp) == convertToInteger(1) {
-		if DOST(aout[ba+1]) {
-			aout[ba]=int(time.Now().Unix())   // время открытия
-			aout[ba+1]=0
+func Vbp(kr_bp string, Vpsut float32, ba float32) {
+	if val(kr_bp) == (1) {
+		//if dost(aout[int(ba)+1]) {
+		if true {
+			aout[int(ba)]=float32(time.Now().Unix())   // время открытия
+			aout[int(ba)+1]=0
+			
 		}
-		aout[ba+2]=(int(time.Now().Unix())-aout[ba])/3600 // в часах
-		aout[ba+4]=(int(time.Now().Unix())-aout[ba])      // в сек
-		aout[ba+3]=int(float32(aout[ba+2])*Vpsut/24)
+		aout[int(ba)+2]=(float32(time.Now().Unix())-aout[int(ba)])/3600 // в часах
+		aout[int(ba)+4]=(float32(time.Now().Unix())-aout[int(ba)])      // в сек
+		aout[int(ba)+3]=float32(aout[int(ba)+2])*Vpsut/24
 	}
 
-	if (convertToInteger(kr_bp) == convertToInteger(2)) && (convertToInteger(DOST(aout[ba+1])) == convertToInteger(0)) {
-		aout[ba+1]=int(time.Now().Unix())
-		aout[ba+2]=(aout[ba+1]-aout[ba])/3600
-		aout[ba+4]=(aout[ba+1]-aout[ba])     // в сек
+	//if (val(kr_bp) == (2)) && ((dost(aout[ba+1])) == (0)) {
+	if (val(kr_bp) == (2)) && (0) == (0) {
+		aout[int(ba)+1]=float32(time.Now().Unix())
+		aout[int(ba)+2]=(aout[int(ba)+1]-aout[int(ba)])/3600
+		aout[int(ba)+4]=(aout[int(ba)+1]-aout[int(ba)])     // в сек
 	}
 }
 
-func DOSTacc(sum float32, v1 float32) float32 {
-	if DOST(v1) {
-		sum=sum+v1
+func dostacc(sum float32, v1 string) float32 {
+	if dost(v1) {
+		sum=sum+val(v1)
 	}
 	return(sum)
 }
 
-func pDOSTnearest(med float32, v1 float32, v2 float32) float32 {
-	if DOST(v1) {
-		if (convertToInteger(math.Abs(float64(med-v1))) > convertToInteger(math.Abs(float64(med-v2)))) {
+func pdostnearest(med float32, v1 string, v2 string) string {
+	if dost(v1) {
+		if ((math.Abs(float64(med-val(v1)))) > (math.Abs(float64(med-val(v2))))) {
 			return(v2)
 		}
 		return(v1)
@@ -901,13 +898,13 @@ func pDOSTnearest(med float32, v1 float32, v2 float32) float32 {
 // возвращает индекс ближайшего из двух к среднему
 
 // val,i - значение и индекс измерения
-// DOSTval,di - значение и индекс достоверного измерения
+// dostval,di - значение и индекс достоверного измерения
 // если val достоверно, возвращает индекс ближайшего из двух к среднему
 // иначе водвращает di
 //
-func iDOSTnearest(med float32, v1 float32, i1 float32, v2 float32, i2 float32, ii float32) float32 {
-	if DOST(v1) && DOST(v2) {
-		if (convertToInteger(math.Abs(float64(med-v1))) > convertToInteger(math.Abs(float64(med-v2))+0.002)) { //+0.002 - чтобы убрать дребезг {
+func idostnearest(med float32, v1 string, i1 float32, v2 string, i2 float32, ii float32) float32 {
+	if dost(v1) && dost(v2) {
+		if ((math.Abs(float64(med-val(v1)))) > (math.Abs(float64(med-val(v2)))+0.002)) { //+0.002 - чтобы убрать дребезг {
 			return(i2)
 		} else {
 			return(i1)
@@ -920,35 +917,35 @@ func iDOSTnearest(med float32, v1 float32, i1 float32, v2 float32, i2 float32, i
 // расчет индекса датчика давления для регулятора на двух эр-04
 // 0 - эр04-12, 1 - эр04-21, 2 - эр04-22, подача в том же порядке
 //
-func regp3i(p1 float32, p2 float32, p3 float32, self float32) float32 {
+func regp3i(p1 string, p2 string, p3 string, self float32) float32 {
 	i:=float32(0)
 	c:=float32(0)
 	p:=float32(0)
 
-	if DOST(p1) {
+	if dost(p1) {
 		c=c+1
-		p=p+p1
+		p=p+val(p1)
 	}
 
 
-	if DOST(p2) {
+	if dost(p2) {
 		i=1
 		c=c+1
-		p=p+p2
+		p=p+val(p2)
 	}
 
-	if DOST(p3) {
+	if dost(p3) {
 		i=2
 		c=c+1
-		p=p+p3
+		p=p+val(p3)
 	}
 
 
 	if c != 0 {
 		p=p/c
-		i=iDOSTnearest(p,p1,0,p3,2,i)
-		i=iDOSTnearest(p,p2,1,p1,0,i)
-		i=iDOSTnearest(p,p3,2,p2,1,i)
+		i=idostnearest(p,p1,0,p3,2,i)
+		i=idostnearest(p,p2,1,p1,0,i)
+		i=idostnearest(p,p3,2,p2,1,i)
 	} else {
 		i=self
 	}
@@ -960,35 +957,35 @@ func regp3i(p1 float32, p2 float32, p3 float32, self float32) float32 {
 // выбор значения Рвых для регулятора по трем ан.датчикам
 // pself - текущее значение параметра
 //
-func regp3p(p1 float32, p2 float32, p3 float32, self float32) any {
-	psum:=DOSTacc(0,p1)
-	psum=DOSTacc(psum,p2)
-	psum=DOSTacc(psum,p3)
+func regp3p(p1 string, p2 string, p3 string, self float32) float32 {
+	psum:=dostacc(0,p1)
+	psum=dostacc(psum,p2)
+	psum=dostacc(psum,p3)
 
 	c := 0
-	if DOST(p1) {
+	if dost(p1) {
 		c = 1
 	}
-	p:=p1
+	p:=(p1)
 
-	if DOST(p2) {
+	if dost(p2) {
 		c=c+1
-		p=p2
+		p=(p2)
 	}
 
-	if DOST(p3) {
+	if dost(p3) {
 		c=c+1
-		p=p3
+		p=(p3)
 	}
 
 	if c != 0 {
-		p=pDOSTnearest(psum/float32(c),p1, p)
-		p=pDOSTnearest(psum/float32(c),p2, p)
-		p=pDOSTnearest(psum/float32(c),p3, p)
+		x:=val(pdostnearest(psum/float32(c),p1, p))
+		x=val(pdostnearest(psum/float32(c),p2, p))
+		x=val(pdostnearest(psum/float32(c),p3, p))
+		return x
 	} else {
-		p=0
+		return 0
 	}
-	return(p)
 }
 
 
@@ -999,21 +996,27 @@ func regp3p(p1 float32, p2 float32, p3 float32, self float32) any {
 // тратит 3 переменные
 //
 
-func ps2is3Lt(p1 float32, p2 float32, p3 float32, mux float32, pzad float32, T float32, vi float32) bool {
+func ps2is3Lt(p1 string, p2 string, p3 string, mux float32, pzad float32, T float32, vi float32) bool {
 	a1:= 0
-	if (valTrackLt(p1,0.01*mux*pzad,T,vi)){
+	if (valTrackLt(p1,0.01*mux*pzad,T,vi)) > 0{
 		a1 = 1
 	}
 	a2:= 0
-	if (valTrackLt(p2,0.01*mux*pzad,T,vi+1)) {
+	if (valTrackLt(p2,0.01*mux*pzad,T,vi+1)) > 0{
 		a2 = 1
 	}
 	a3:=0 
-	if (valTrackLt(p3,0.01*mux*pzad,T,vi+2)) {
+	if (valTrackLt(p3,0.01*mux*pzad,T,vi+2)) > 0 {
 		a3 = 1
 	}
-	if (convertToInteger(DOST(p1)||DOST(p3)||DOST(p3)) >= convertToInteger(2)) {
-		return ((convertToInteger(a1+a2+a3) >= convertToInteger(2)))
+	x1 := 0
+	x2 := 0
+	x3 := 0
+	if dost(p1) { x1 = 1}
+	if dost(p2) { x2 = 1 }
+	if dost(p3) { x3 = 1 }
+	if x1 + x2 + x3 >= 2 {
+		return (((a1+a2+a3) >= (2)))
 	}
 	return(false)
 }
@@ -1022,21 +1025,27 @@ func ps2is3Lt(p1 float32, p2 float32, p3 float32, mux float32, pzad float32, T f
 // mux - множитель типа 110%
 // тратит 3 переменные
 //
-func ps2is3Gt(p1 float32, p2 float32, p3 float32, mux float32, pzad float32, T float32, vi float32) bool {
+func ps2is3Gt(p1 string, p2 string, p3 string, mux float32, pzad float32, T float32, vi float32) bool {
 	a1:= 0
-	if (valTrackGt(p1,0.01*mux*pzad,T,vi)){
+	if (valTrackGt(p1,0.01*mux*pzad,T,vi)) > 0{
 		a1 = 1 
 	}
 	a2:= 0
-	if (valTrackGt(p2,0.01*mux*pzad,T,vi+1)){
+	if (valTrackGt(p2,0.01*mux*pzad,T,vi+1)) > 0{
 		a2 = 1
 	}
 	a3:=0 
-	if (valTrackGt(p3,0.01*mux*pzad,T,vi+2)){
+	if (valTrackGt(p3,0.01*mux*pzad,T,vi+2)) > 0{
 		a3 = 1
 	}
-	if (convertToInteger(DOST(p1)||DOST(p3)||DOST(p3)) >= convertToInteger(2)) {
-		return ((convertToInteger(a1+a2+a3) >= convertToInteger(2)))
+	x1 := 0
+	x2 := 0
+	x3 := 0
+	if dost(p1) { x1 = 1}
+	if dost(p2) { x2 = 1 }
+	if dost(p3) { x3 = 1 }
+	if x1 + x2 + x3 >= 2 {
+		return (((a1+a2+a3) >= (2)))
 		//return(a3)
 	}
 	return(false)
@@ -1075,8 +1084,8 @@ func upd_qyqd(t1 *float32, vsSys, qfSys, qySys *float32, vi int, qmax float32, c
 		*qfSys = *vsSys // Store the current accumulated value
 		time.Sleep(2 * time.Second) // Sleep for 2 seconds to simulate usage of the new value
 	}
-	aout[vi] = int(*vsSys - *qfSys) // Calculate consumption since the start of the day
-	aout[vi+1] = int(float32(t.Unix())) // Update the last time
+	aout[vi] = float32(*vsSys - *qfSys) // Calculate consumption since the start of the day
+	aout[vi+1] = float32(t.Unix()) // Update the last time
 }
 
 
@@ -1145,11 +1154,11 @@ func convertToBool(val float32) bool {
 //
 // управление при условии достоверности
 //
-func setex(sys *float32, value float32) bool {
-	if (convertToInteger(DOST(sys)) == convertToInteger(0)) {
+func setex(sys string, value float32) bool {
+	if (dost(sys) == false) {
 		return(false)
 	}
-	SET(sys, value)
+	PKG.UpdateVal(sys, value, true)
 	return(true)
 }
 
@@ -1159,24 +1168,27 @@ func setex(sys *float32, value float32) bool {
 // производится дополнительные 1 попытки
 // достигнуть заданного соcтояния
 //
-func setwex(sys *float32, value float32, timeout any) bool {
-	//fmt.Println(*sys)
-	if convertToInteger(SET_WAIT(sys,value,timeout)) != convertToInteger(0) {
-		//fmt.Println("voshel")
-		//fmt.Println(*sys)
-		//time.Sleep((18) * time.Second)
-		return(SET_WAIT(sys,value,timeout))
+func setwex(parameter string, value float32, timeout float64) float32 {
+	PKG.UpdateVal(parameter+" УПР", value, true)
+	if value == 3 { ///Если открываем
+		value = 1
+	} else if value == 4 { ///Если закрываем
+		value = 2
 	}
-	return(false)
+	if set_wait(parameter, value, timeout) != 0 {
+		time.Sleep(250 * time.Millisecond)
+		return set_wait(parameter, value, timeout)
+	}
+	return 0
 }
 
 //
 // impuls
 //
-func impuls(sys *float32, t any) any {
-	x:=SET_WAIT(sys,1,t)
+func impuls(sys string, t float64) float32 {
+	x:=set_wait(sys,1,t)
 	//time.Sleep((2*18) * time.Second)
-	x=SET_WAIT(sys,0,t)
+	x=set_wait(sys,0,t)
 	return(x)
 }
 
@@ -1185,9 +1197,9 @@ func impuls(sys *float32, t any) any {
 // установка значения с заданной чувствительностью
 // возврат 1-установлено
 //         0-без реакции
-func setSens(sys *float32, value float32, sens any) bool {
+func setSens(sys string, value float32, sens float32) bool {
 	x := false
-	if (convertToInteger(math.Abs(float64(*sys - value))) > convertToInteger(sens)) {
+	if ((math.Abs(float64(val(sys) - value))) > float64(sens)) {
 		x = setex(sys,value)
 	}
 	return x
@@ -1195,11 +1207,11 @@ func setSens(sys *float32, value float32, sens any) bool {
 
 
 
-func setwex_DOST(sys *float32, value float32, timeout any) any {
-	if !DOST(sys) {
+func setwex_dost(sys string, value float32, timeout float64) any {
+	if !dost(sys) {
 		return(false)
 	}
-	return(SET_WAIT(sys,value,timeout))
+	return(set_wait(sys,value,timeout))
 }
 
 
@@ -1215,12 +1227,13 @@ func setwex_DOST(sys *float32, value float32, timeout any) any {
 // src - дискр сигнал
 // id - номер переменной слежения
 //
-func front(src *float32, id int) bool {
-	x := false
-	if DOST(src) && convertToInteger(src) != convertToInteger(dout[id]) && convertToInteger(src) != convertToInteger(0) {
-		x=true
+func front(src string, id float32) float32 {
+	var x float32
+	x = 0
+	if dost(src) && val(src) != (dout[int(id)]) && val(src) != 0 {
+		x=1
 	}
-	dout[id]=int(*src)
+	dout[int(id)]=val(src)
 	return(x)
 }
 
@@ -1240,9 +1253,9 @@ func front(src *float32, id int) bool {
 
 // час текущего времени сау
 //
-func curhour () int {
+func curhour () float32 {
 	curtime:=time.Now()
-	return(curtime.Hour())
+	return(float32(curtime.Hour()))
 }
 
 //
@@ -1255,21 +1268,21 @@ func curhour () int {
 // aout[vi+2] - предыдущий час
 // dout[vi+3] - внеочередная проверка
 //
-func klap_test(u int, man float32, pol float32, vi float32, bp_kr any, t any, rejim_grs any) int {
-	if (convertToInteger(bp_kr) == convertToInteger(2)) {
+func klap_test(u float32, man float32, pol float32, vi float32, bp_kr any, t any, rejim_grs any) float32 {
+	if ((bp_kr) == (2)) {
 
-		if (convertToInteger(aout[int(vi+1.0)]) == convertToInteger(0)) {
-			u=int(man)		// без проверки было бы так и все
+		if ((aout[int(vi+1.0)]) == (0)) {
+			u=float32(man)		// без проверки было бы так и все
 		}
 
 		h:=curhour()
-		if convertToInteger(rejim_grs) != convertToInteger(0) {
+		if (rejim_grs) != (0) {
 			a := false
 			if dout[int(vi +3)] > 0 {
 				a = true
 			}
-			if convertToInteger(h) != convertToInteger(aout[int(vi+2)]) && (convertToInteger(h) == convertToInteger(t)) && (convertToInteger(aout[int(vi+1)]) == convertToInteger(0)) || a{	// dout - внеочередной тест {
-				if (convertToInteger(math.Abs(float64(pol-man))) < convertToInteger(8)) {
+			if (h) != (aout[int(vi+2)]) && ((h) == (t)) && ((aout[int(vi+1)]) == (0)) || a{	// dout - внеочередной тест {
+				if ((math.Abs(float64(pol-man))) < (8)) {
 					aout[int(vi+1)]=GETTICKS(0)	// ждем
 				} else {
 					dout[int(vi)]=1
@@ -1277,13 +1290,13 @@ func klap_test(u int, man float32, pol float32, vi float32, bp_kr any, t any, re
 				dout[int(vi+3)]=0			// сбросить флаг внеочередного теста
 			}
 
-			if convertToInteger(aout[int(vi+1)]) != convertToInteger(0) {
+			if (aout[int(vi+1)]) != (0) {
 
-				u=int(math.Min(float64(man)+15, 100))      // все время теста держим задание
+				u=float32(math.Min(float64(man)+15, 100))      // все время теста держим задание
 
-				if (convertToInteger(GETTICKS(aout[int(vi+1)])*TICKSIZE()) >= convertToInteger(40)) || (convertToInteger(pol) > convertToInteger(math.Min(99, float64(man+8)))) {
+				if ((GETTICKS(aout[int(vi+1)])*TICKSIZE()) >= (40)) || ((pol) > float32(math.Min(99, float64(man+8)))) {
 
-					if (convertToInteger(pol) < convertToInteger(man+8)) {dout[int(vi)]=1} else {dout[int(vi)]= 0}
+					if ((pol) < (man+8)) {dout[int(vi)]=1} else {dout[int(vi)]= 0}
 					aout[int(vi+1)]=0			// сам приедет обратно
 				}
 			}
@@ -1294,19 +1307,20 @@ func klap_test(u int, man float32, pol float32, vi float32, bp_kr any, t any, re
 	return(u)
 }
 
+//regim.evl
 // переходы в режим по кнопкам или командам
 // vi_mode - номер перем режима грс (уст извне, 0-по месту, 1-пу, 2-арм)
 // evt - команда/кнопка
 // vi  - номер переменной слежения
 // v1,v2 - значения режима грс, между которыми переход
 //
-func hev(vi_mode int, vi int, evt *float32, v1 int, v2 int) {
-	if (convertToInteger(front(evt,vi)) == 1) {		// нажата/подана {
-		if (convertToInteger(dout[vi_mode]) == convertToInteger(v1)) {
-			dout[vi_mode]=v2			// туды
+func hev(vi_mode float32, vi float32, evt string, v1 float32, v2 float32) {
+	if (front(evt,vi) == 1) {		// нажата/подана {
+		if dout[int(vi_mode)] == (v1) {
+			dout[int(vi_mode)]=v2			// туды
 		} else {
-			if (convertToInteger(dout[vi_mode]) == convertToInteger(v2)) {
-				dout[vi_mode]=v1       		// сюды
+			if ((dout[int(vi_mode)]) == (v2)) {
+				dout[int(vi_mode)]=v1       		// сюды
 			}
 		}
 	}
@@ -1325,16 +1339,16 @@ func hev(vi_mode int, vi int, evt *float32, v1 int, v2 int) {
 // vi+5, vi+6 - задержка при восст команд реж ту грс
 // vi+7, vi+8 - тела команд реж ту грс
 //
-func modes(vi int, cmd1 *float32, cmd2 *float32, but1 *float32, but2 *float32) {
+func modes(vi float32, cmd1 string, cmd2 string, but1 string, but2 string) {
 	hev(vi+0,vi+1,cmd1,0,2)
 	hev(vi+0,vi+2,but1,0,2)
 	hev(vi+0,vi+3,cmd2,1,2)
 	hev(vi+0,vi+4,but2,1,2)
-	if (convertToInteger(valTrack(cmd1, 5,float32(vi+5))) == 1) {
-		dout[vi+7]=0
+	if (valTrack(cmd1, 5,float32(vi+5)) == 1) {
+		dout[int(vi)+7]=0
 	}
-	if (convertToInteger(valTrack(cmd2, 5,float32(vi+6))) == 1) {
-		dout[vi+8]=0
+	if ((valTrack(cmd2, 5,float32(vi+6))) == 1) {
+		dout[int(vi)+8]=0
 	}
 	//return(false)
 }
@@ -1345,24 +1359,24 @@ func modes(vi int, cmd1 *float32, cmd2 *float32, but1 *float32, but2 *float32) {
 // vi  - номер переменной слежения
 // vi+1 - тело команды
 //
-func cmdmode_in(vi_mode int, vi int, cmd *float32) {
-	if DOST(cmd) && convertToInteger(cmd) != convertToInteger(dout[vi]) {
-		dout[vi_mode]=int(*cmd)
-		dout[vi+1]=dout[vi_mode]
+func cmdmode_in(vi_mode float32, vi float32, cmd string) {
+	if dost(cmd) && val(cmd) != (dout[int(vi)]) {
+		dout[int(vi_mode)]=val(cmd)
+		dout[int(vi)+1]=dout[int(vi_mode)]
 	}
-	dout[vi]=int(*cmd)
-	dout[vi+1]=dout[vi_mode]
+	dout[int(vi)]=val(cmd)
+	dout[int(vi)+1]=dout[int(vi_mode)]
 	//return(false)
 }
 
 
-func to_mest(vi_mode int, vi int) any {
-	if (convertToInteger(dout[vi]) == convertToInteger(1)) {
-		dout[vi_mode]=0	// по месту
-		time.Sleep((3*18) * time.Second)
-		dout[vi]=0		// взвод
+func to_mest(vi_mode float32, vi float32) float32 {
+	if ((dout[int(vi)]) == (1)) {
+		dout[int(vi_mode)]=0	// по месту
+		time.Sleep((3) * time.Second)
+		dout[int(vi)]=0		// взвод
 	}
-	return(false)
+	return(0)
 }
 
 // Библиотека для работы с одоризаторами БОМ
@@ -1388,38 +1402,45 @@ func to_mest(vi_mode int, vi int) any {
 //  x=setq_one((Reps["ПР СУТ-1 ДЮРТ"].Value+Reps["ПР СУТ-2 ДЮРТ"].Value)/24,Reps["QМГН ЗАМ ДЮРТ"].Value,Reps["QГ ОДОР ДЮРТ"].sys_num)
 
 
-func setq(q float32, cnt_sys *float32) {
-	if DOST(cnt_sys) {
-		if (convertToInteger(math.Abs(float64(*cnt_sys-q))) > convertToInteger(5)) {  	// если расход мало изменился не засылаем {
-			SET(cnt_sys, q)
+func setq(q float32, cnt_sys string) {
+	if dost(cnt_sys) {
+		if ((math.Abs(float64(val(cnt_sys)-q))) > (5)) {  	// если расход мало изменился не засылаем {
+			PKG.UpdateVal(cnt_sys, q, true)
 
 		}
 	}
 }
 
-func setq_one(q float32, qz float32, cnt_sys *float32) {
-	if DOST(q) {
-		setq(q,cnt_sys)
+func setq_one(q string, qz float32, cnt_sys string) {
+	if dost(q) {
+		setq(val(q),cnt_sys)
 	} else {
 		setq(qz,cnt_sys)
 	}
 }
 
-func setq_periodic(vi int, q1 float32, qz float32, mode any, cnt_sys *float32, T any) any {
-	if convertToInteger(mode) != convertToInteger(2) { // не автомат расход {
-		return(false)
+func setq_periodic(vi float32, q1 string, qz float32, mode any, cnt_sys string, T float32) float32 {
+	if (mode) != (2) { // не автомат расход {
+		return(0)
 	}
 
-	if (convertToInteger(GETTICKS(aout[vi])*TICKSIZE()) >= convertToInteger(T)) {
-		if DOST(q1) {
-			setq(q1,cnt_sys)
+	if ((GETTICKS(aout[int(vi)])*TICKSIZE()) >= (T)) {
+		if dost(q1) {
+			setq(val(q1),cnt_sys)
 		} else {
-			if valTrack(!DOST(q1),60,float32(vi+1)) {// если расход недост ждем 60 сек потом засылаем замещенный {
+			if valTrack(!dost(q1),60,float32(vi+1)) > 0 {// если расход недост ждем 60 сек потом засылаем замещенный {
 				setq(qz,cnt_sys)
 			}
 		}
-		aout[vi]=GETTICKS(0)
+		aout[int(vi)]=GETTICKS(0)
 	}
 
-	return(false)
+	return(0)
+}
+
+func val(Raper string) float32 {
+	PKG.InputMap.Mu.Lock()
+	value := PKG.InputMap.Out[Raper].Value
+	PKG.InputMap.Mu.Unlock()
+	return value
 }

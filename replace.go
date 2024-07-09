@@ -14,8 +14,8 @@ type Rep struct {
 	Value   float32
 }
 
-var aout [100]int
-var dout [100]int
+var aout [100]float32
+var dout [100]float32
 
 var Reps map[string]Rep
 
@@ -33,7 +33,7 @@ func translate_for_to_go(code string) string {
 	// Код, который вы хотите добавить после последнего endfunc
 	additionalCode := `
 
-func main()
+func mainOutput()
 `
 	// Вставим код после последнего endfunc
 	code = newCode[:lastEndfuncIndex+7] + additionalCode + newCode[lastEndfuncIndex+7:]
@@ -125,14 +125,14 @@ func main()
 	// Логические операции
 	// Dost TRUE FALSE нужно будет написать функции внутри GO, потому что такой альтернативы нет
 
-	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\s*\(([^()]+(?:\{[^}]+\})?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
-	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) == convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\s*\(([^()]+(?:\{[^}]+\})?),([^)]+)\)`, `(($2) == ($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(eq)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(($2) == ($3))`)
 
-	code = ReplaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `convertToInteger($1) != convertToInteger($2)`)
-	code = ReplaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) >= convertToInteger($3))`)
-	code = ReplaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) < convertToInteger($3))`)
-	code = ReplaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) > convertToInteger($3))`)
-	code = ReplaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(convertToInteger($2) <= convertToInteger($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\bne\(([^,]+?(?:\([^)]+\))?),([^)]+)\)`, `($1) != ($2)`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(ge)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(($2) >= ($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(lt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(($2) < ($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(gt)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(($2) > ($3))`)
+	code = ReplaceAllStringRegexp(code, `(?i)\b(le)\(([^,]+(?:\([^)]+\))?),([^)]+)\)`, `(($2) <= ($3))`)
 	code = ReplaceAllStringRegexp(code, `(?i)\b(NOT)\(([^)]+)\)`, `^(0xFFFFFFFFFFFFFFFF & $3)`)
 	//dost
 	code = ReplaceAllStringRegexp(code, `(?i)dost`, "DOST")
@@ -202,10 +202,10 @@ func main()
 	//ticksize
 	code = ReplaceAllStringRegexp(code, `(?i)ticksize`, "TICKSIZE")
 	//set
-	code = ReplaceAllStringRegexp(code, `SET\s+(\{[^{}]+\})\s*\[([^\]]+)\],\s*\(([^)]+)\)`, "SET($1[$2], $3)")
+	code = ReplaceAllStringRegexp(code, `SET\s+(\{[^{}]+\})\s*\[([^\]]+)\],\s*\(([^)]+)\)`, "PKG.UpdateVal($1[$2], $3, true)")
 
-	code = ReplaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET($1, $2)\n")
-	code = ReplaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "SET({$1, $2)\n\t")
+	code = ReplaceAllStringRegexp(code, `(?i)\bset\s+([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "PKG.UpdateVal($1, $2, true)\n")
+	code = ReplaceAllStringRegexp(code, `(?i)\bset\s*{([^,]+(?:\{[^}]+\})?),\s*([^)\s]+)\s*(?:\)|\b)`, "PKG.UpdateVal({$1, $2, true)\n\t")
 
 	//функции перезагрузки
 	//stop_softdog
@@ -215,7 +215,7 @@ func main()
 
 
 	//set_wait доделать!
-	code = ReplaceAllStringRegexp(code, `(?i)set_wait`, "SET_WAIT")
+	code = ReplaceAllStringRegexp(code, `(?i)set_wait`, "set_wait")
 	//return
 	code = ReplaceAllStringRegexp(code, `(?i)return`, "return")
 
@@ -254,17 +254,17 @@ func main()
 
 	code = ReplaceAllStringRegexp(code, `(?i)ELSE`, "} else {")
 	//потому удалить, относится только к самой первой программе
-	code = strings.ReplaceAll(code, "dout[2]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао", "dout[2]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)))  // ход ао\n    ")
-	code = strings.ReplaceAll(code, "dout[1]=2+((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао", "dout[1]=convertToInteger(2)+convertToInteger((convertToInteger(Reps[\"ОХР КР ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Вход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"КРдоРУ ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"Выход ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"ВЫХ Д ДЕС\"].Value) == convertToInteger(2)) && (convertToInteger(Reps[\"СВзаВХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВдоВЫХ ДЕС\"].Value) == convertToInteger(1)) && (convertToInteger(Reps[\"СВ ОК ДЕС\"].Value) == convertToInteger(1)))  // ход ао")
-	code = strings.ReplaceAll(code, "convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value*1.15)", "convertToInteger(convertToInteger(Reps[\"ЗадPгВыхРабДЕС\"].Value)*convertToInteger(1.15))")
+	code = strings.ReplaceAll(code, "dout[2]=2+(((Reps[\"ОХР КР ДЕС\"].Value) == (2)) && ((Reps[\"Вход ДЕС\"].Value) == (2)) && ((Reps[\"КРдоРУ ДЕС\"].Value) == (2)) && ((Reps[\"Выход ДЕС\"].Value) == (2)) && ((Reps[\"ВЫХ Д ДЕС\"].Value) == (2)))  // ход ао", "dout[2]=(2)+(((Reps[\"ОХР КР ДЕС\"].Value) == (2)) && ((Reps[\"Вход ДЕС\"].Value) == (2)) && ((Reps[\"КРдоРУ ДЕС\"].Value) == (2)) && ((Reps[\"Выход ДЕС\"].Value) == (2)) && ((Reps[\"ВЫХ Д ДЕС\"].Value) == (2)))  // ход ао\n    ")
+	code = strings.ReplaceAll(code, "dout[1]=2+(((Reps[\"ОХР КР ДЕС\"].Value) == (2)) && ((Reps[\"Вход ДЕС\"].Value) == (2)) && ((Reps[\"КРдоРУ ДЕС\"].Value) == (2)) && ((Reps[\"Выход ДЕС\"].Value) == (2)) && ((Reps[\"ВЫХ Д ДЕС\"].Value) == (2)) && ((Reps[\"СВзаВХ ДЕС\"].Value) == (1)) && ((Reps[\"СВдоВЫХ ДЕС\"].Value) == (1)) && ((Reps[\"СВ ОК ДЕС\"].Value) == (1)))  // ход ао", "dout[1]=(2)+(((Reps[\"ОХР КР ДЕС\"].Value) == (2)) && ((Reps[\"Вход ДЕС\"].Value) == (2)) && ((Reps[\"КРдоРУ ДЕС\"].Value) == (2)) && ((Reps[\"Выход ДЕС\"].Value) == (2)) && ((Reps[\"ВЫХ Д ДЕС\"].Value) == (2)) && ((Reps[\"СВзаВХ ДЕС\"].Value) == (1)) && ((Reps[\"СВдоВЫХ ДЕС\"].Value) == (1)) && ((Reps[\"СВ ОК ДЕС\"].Value) == (1)))  // ход ао")
+	code = strings.ReplaceAll(code, "(Reps[\"ЗадPгВыхРабДЕС\"].Value*1.15)", "((Reps[\"ЗадPгВыхРабДЕС\"].Value)*(1.15))")
 	code = strings.ReplaceAll(code, "return(SET_WAIT(sys,state,timeout))\n}", "return(SET_WAIT(sys,state,timeout))\n}\n return false")
 	code = strings.ReplaceAll(code, "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей", "  time.Sleep((5*18) * time.Second)\t// ждем первого опроса модулей\n return (t)")
 	//для демонстрации
-	code = strings.ReplaceAll(code, "if (convertToInteger(valTrack(Reps[\"КН АВОСТ КРАС\"].Value) == convertToInteger(4,8)),1) {", "if (convertToInteger(valTrack(Reps[\"КН АВОСТ КРАС\"].Value, 4, 8)) == convertToInteger(1)) {")
+	code = strings.ReplaceAll(code, "if ((valTrack(Reps[\"КН АВОСТ КРАС\"].Value) == (4,8)),1) {", "if ((valTrack(Reps[\"КН АВОСТ КРАС\"].Value, 4, 8)) == (1)) {")
 	code = strings.ReplaceAll(code, "return(0)", "return(false)")
 	code = strings.ReplaceAll(code, "return(1)", "return(true)")
 	code = strings.ReplaceAll(code, "func setSens(sys any, value any, sens any) any {", "func setSens(sys int, value int, sens any) any {")
-	code = strings.ReplaceAll(code, "if (convertToInteger(math.Abs(sys-value)) > convertToInteger(sens)) {", "if (convertToInteger(math.Abs(float64(sys - value))) > convertToInteger(sens)) {")
+	code = strings.ReplaceAll(code, "if ((math.Abs(sys-value)) > (sens)) {", "if ((math.Abs(float64(sys - value))) > (sens)) {")
 	code = strings.ReplaceAll(code, "func setex(sys any, value any) any {", "func setex(sys any, value any) bool {")
 	code = strings.ReplaceAll(code, "func front(src any, id int) any {", "func front(src int, id int) bool {")
 	code = strings.ReplaceAll(code, "func checkPrecond(dummy any) any {", "func checkPrecond(dummy any) any {\n\tvar x bool")
@@ -276,11 +276,11 @@ func main()
 	code = strings.ReplaceAll(code, "TRUE(Reps[\"ДАТА ЗАО КРАС\"].Value)", "1")
 	code = strings.ReplaceAll(code, "time.Sleep((10*18) * time.Second)", "time.Sleep((10*18) * time.Second)\n return nil")
 	code = strings.ReplaceAll(code, "reason=checkPrecond(0)", "reason:=checkPrecond(0)")
-	code = strings.ReplaceAll(code, "dout[3]=reason", "dout[3]=convertToInteger(reason)")
+	code = strings.ReplaceAll(code, "dout[3]=reason", "dout[3]=(reason)")
 	code = strings.ReplaceAll(code, "aout[5]=time.Now().Unix()", "aout[5]=int(time.Now().Unix())")
 	code = strings.ReplaceAll(code, "aout[6]=time.Now().Unix()", "aout[6]=int(time.Now().Unix())")
 	code = strings.ReplaceAll(code, "x=1", "x=true")
-	code = strings.ReplaceAll(code, "front(convertToInteger(Reps[\"РЕЖИМ ГРС КРАС\"].Value) != convertToInteger(0)", "front(convertToInteger(convertToInteger(Reps[\"РЕЖИМ ГРС КРАС\"].Value) != convertToInteger(0))")
+	code = strings.ReplaceAll(code, "front((Reps[\"РЕЖИМ ГРС КРАС\"].Value) != (0)", "front(((Reps[\"РЕЖИМ ГРС КРАС\"].Value) != (0))")
 
 
 	return code
@@ -290,15 +290,60 @@ func main() {
 	code := `package main
 
 import (
+	PKG "AlgorithmsRabbit/connections"
+	"sync"
 	"time"
-	"math"
 )
 
-var aout [100]int
-var dout [100]int
-var x bool
+var aout [100]float32
+var dout [100]float32
+	
+	type SafeMap struct {
+	Mu   sync.Mutex
+	Reps map[string]*Rep
+}
 
+type Rep struct {
+	MEK_Address int
+	Raper       string
+	Value       float32
+	TypeParam   string
+	OldValue    float32
+	Reliability bool
+	TimeOld     time.Time
+	Time        time.Time
+}
 
+type OutToRabbitMQ struct {
+	MEK_Address int
+	Raper       string
+	Value       float32
+	TypeParam   string
+	Reliability bool
+	Time        time.Time
+}
+
+func main() {
+	PKG.CONNECTRABBITMIB = "amqp://admin:admin@127.0.0.1:5672/"
+	PKG.NameAlg = "ButtonALG"
+	//Объявление входных и выходных массивов
+	PKG.DeclareArrays()
+	//Подключаемся к RabbitMQ
+	PKG.DeclareRabbit()
+	//Запрашиваем и отправляем данные
+	go PKG.ConsumeFromRabbitMq(&PKG.InputMap)
+	go PKG.SendToRabbitMQ(&PKG.OutputMap)
+	for {
+		//Если данные получены, начинаем алгоритм
+		if PKG.ConnectToRabit {
+			for {
+				mainOutput()
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
 	`
 
 	// Чтение данных из файла

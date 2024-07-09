@@ -1,35 +1,15 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
+	PKG "AlgorithmsRabbit/connections"
 	"sync"
 	"time"
+	"fmt"
 )
 
-var aout [100]int
-var dout [100]int
-var x bool
-
-var InputMap SafeMap
-var OutputMap SafeMap
-
-var CONNECTRABBITMIB = "amqp://admin:admin@192.168.1.102:5672/"
-var NameAlg = "ButtonALG"
-
-var ConnectToRabit bool
-var ConnRabbitMQPublish *amqp.Connection
-var ConnRabbitMQConsume *amqp.Connection
-
-type BtnConditionStruct struct {
-	Mu                    sync.Mutex
-	BtnPressedAndAccident bool      // Флаг того, что у нас кнопка нажата долго и есть авария
-	BtnIsRealise          bool      // Флаг того, что кнопка отпущена
-	BtnLastPress          time.Time // Когда последний раз нажимали
-}
+var aout [100]float32
+var dout [100]float32
+var x int
 
 type SafeMap struct {
 	Mu   sync.Mutex
@@ -57,46 +37,26 @@ type OutToRabbitMQ struct {
 }
 
 func main() {
-	var err error
-	// Устанавливаем соединение для публикации сообщений
-	ConnRabbitMQPublish, err = amqp.Dial(CONNECTRABBITMIB)
-	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ for publishing: %v", err)
+	PKG.CONNECTRABBITMIB = "amqp://admin:admin@192.168.1.102:5672/"
+	PKG.NameAlg = "ButtonALG"
+	//Объявление входных и выходных массивов
+	PKG.DeclareArrays()
+	//Подключаемся к RabbitMQ
+	PKG.DeclareRabbit()
+	//Запрашиваем и отправляем данные
+	go PKG.ConsumeFromRabbitMq(&PKG.InputMap)
+	go PKG.SendToRabbitMQ(&PKG.OutputMap)
+	for {
+		//Если данные получены, начинаем алгоритм
+		if PKG.ConnectToRabit {
+			for {
+				mainOutput()
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	defer ConnRabbitMQPublish.Close()
-
-	// Устанавливаем соединение для потребления сообщений
-	ConnRabbitMQConsume, err = amqp.Dial(CONNECTRABBITMIB)
-	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ for consuming: %v", err)
-	}
-	defer ConnRabbitMQConsume.Close()
-
-	// Инициализируем общую структуру с исходными данными
-	//safeMap := initializeSafeMap(safeMap)
-	InputMap.Reps = make(map[string]*Rep)
-	//var InputMap SafeMap
-	//fmt.Println(safeMap)
-	// Запускаем горутину для потребления сообщений
-	fmt.Println(InputMap)
-	go ConsumeFromRabbitMq(&InputMap)
-	fmt.Println("consume")
-	fmt.Println(InputMap)
-	//
-	// Запускаем горутину для отправки сообщений
-	go SendToRabbitMQ(&InputMap)
-
-	// Отправляем тестовое сообщение для проверки потребителя
-	//publishTestMessage()
-
-
-
-	// Для того чтобы main не завершилась и программа продолжала работать
-	fmt.Println("Press [enter] to exit...")
-	fmt.Scanln()
 }
-
-
 // ГРС Красноусольск (Стерлитамакское ЛПУМГ)
 // 09.2019 Галеев
 // Аварийный останов
@@ -110,6 +70,10 @@ func main() {
 // aout[6] - дата окончания выполнения
 
 
+//#include "eval.lib\valtrack.evl"
+//#include "eval.lib\set.evl"
+//#include "eval.libront.evl"
+
 
 //----------- Условия выполнения аварийного останова -----------------------------
 // по команде с экрана АРМ или от Диспетчера
@@ -119,37 +83,27 @@ func main() {
 // - Пожар в блоке переключения (при наличии пож.сигнализации)
 // - Пожар в блоке одоризации (при наличии пож.сигнализации)
 //-------------------------------------------------------------------------------
-func checkFire(Reps *SafeMap) bool {
+func checkFire() float32 {
 	var x float32
-	x = 0.0
-	x=x + Reps.Reps["ПОЖАР ОПЕ КРАС"].Value //<Пожар в операторной>.
-	x=x + Reps.Reps["ПОЖАР ПЕР КРАС"].Value //<Пожар в блоке переключения>.
-	//x=x || Reps.Reps["ПОЖАР ОДО КРАС"].Value //<Пожар в блоке одоризации>.
-	if x > 0 {
-		return(true)
-	} else {
-		return (false)
-	}
+	x = 0
+	x=x + val("ПОЖАР ОПЕ КРАС") //<Пожар в операторной>.
+	x=x + val("ПОЖАР ПЕР КРАС") //<Пожар в блоке переключения>.
+	//x=x || val("ПОЖАР ОДО КРАС") //<Пожар в блоке одоризации>.
+	return(x)
 }
 
 
-func checkPrecond(Reps *SafeMap) bool {
+func checkPrecond() float32 {
 	var x float32
-	x = 0.0
-	if convertToInteger(Reps.Reps["РЕЖИМ ГРС КРАС"].Value) != convertToInteger(0) {
-		x=x+Reps.Reps["КОМ АО КРАС"].Value  //1 команда - без условий
-		if (convertToInteger(valTrack(Reps.Reps["КН АВОСТ КРАС"].Value, 4, 8)) == convertToInteger(1)) {    // кнопка - только при аварийной ситуации {
-			if checkFire(Reps)     {
-				x = x + 1
-			}    //2 Пожар
-			x=x+Reps.Reps["РВЫХ123АВ КРАС"].Value    //3 Аварийно-высокое давление
+	x = 0
+	if (val("РЕЖИМ ГРС КРАС")) != (0) {
+		x=x+val("КОМ АО КРАС")  //1 команда - без условий
+		if ((valTrack(val("КН АВОСТ КРАС"),4,8)) == 1) {    // кнопка - только при аварийной ситуации {
+			x=x + checkFire()        //2 Пожар
+			x=x+3*val("РВЫХ123АВ КРАС")    //3 Аварийно-высокое давление
 		}
 	}
-	if x > 0 {
-		return(true)
-	} else {
-		return (false)
-	}
+	return(x)
 }
 //--------------------------------------------------------------------------------
 
@@ -158,304 +112,81 @@ func oninit(t any) any {
 	dout[2]=0
 	dout[3]=0
 	aout[4]=0
+	//aout[5]=TRUE(val("ДАТА АО КРАС"))
 	aout[5]=1
+	//aout[6]=TRUE(val("ДАТА ЗАО КРАС"))
 	aout[6]=1
 
 	// ждем первого опроса модулей
-	time.Sleep((10*18) * time.Second)
+	time.Sleep((10) * time.Second)
 	return nil
 }
 
-func mainOutput(Reps *SafeMap) {
-	reason:=checkPrecond(Reps)
-	if convertToInteger(reason) != convertToInteger(0) {
+func mainOutput() {
+	x += 1
+	reason:=checkPrecond()
+	if x % 5 == 0 {
+		PKG.UpdateVal("КОМ РЕЖ3", 0, true)
+		fmt.Println("апдейтнул")
+	}
+	if (reason) != (0) {
+		fmt.Print("попал")
 
 		dout[2]=1	// ход ао
-		dout[3]=convertToInteger(reason)
-		aout[5]=int(time.Now().Unix())
+		dout[3]=(reason)
+		aout[5]=float32(time.Now().Unix())
 
 		// закрыть охранный кран
-		x=setwex(&Reps.Reps["КРАН ОХР КРАС"].Value,1,40)
+		setwex("КРАН ОХР КРАС",1,40)
 
-		time.Sleep((18) * time.Second)
-		if convertToInteger(Reps.Reps["КРАН ОХР КРАС"].Value) != convertToInteger(2) {
+		time.Sleep((1) * time.Second)
+		if val("КРАН ОХР КРАС") != (2) {
 			// закрыть входной кран
-			x=setwex(&Reps.Reps["КРАН ВХОД КРАС"].Value,1,20)
+			setwex("КРАН ВХОД КРАС",1,20)
 		}
 
 		// закрыть байпасный кран
-		x=setwex(&Reps.Reps["КРАН БАЙП КРАС"].Value,1,20)
+		setwex("КРАН БАЙП КРАС",1,20)
 
 		// закрыть выходной
-		x=setwex(&Reps.Reps["КРАН ВЫХ КРАС"].Value,1,20)
+		setwex("КРАН ВЫХ КРАС",1,20)
 
 		// подогреватель отключить
-		x=SET_WAIT(&Reps.Reps["ПГ УПР КРАС"].Value,2,20)
+		set_wait("ПГ УПР КРАС",2,20)
 
 		// отключить одоризатор
-		x=SET_WAIT(&Reps.Reps["РЕЖ ОДОР1 КРАС"].Value,0,20)
+		set_wait("РЕЖ ОДОР1 КРАС",0,20)
 
 		// Если пожар
-		if checkFire(Reps) {
+		if checkFire() > 0{
 
 			// если закрыты : Охранный, байпасный, выходной краны
-			if (convertToInteger(Reps.Reps["КРАН ОХР КРАС"].Value) == convertToInteger(2)) && (convertToInteger(Reps.Reps["КРАН ВЫХ КРАС"].Value) == convertToInteger(2)) && (convertToInteger(Reps.Reps["КРАН БАЙП КРАС"].Value) == convertToInteger(2)) {
+			if ((val("КРАН ОХР КРАС")) == (2)) && ((val("КРАН ВЫХ КРАС")) == (2)) && ((val("КРАН БАЙП КРАС")) == (2)) {
 				// открыть свечные краны
-				x=setwex(&Reps.Reps["КР СВ НИЗ КРАС"].Value,0,30)
-				x=setwex(&Reps.Reps["КР СВ ВЫС КРАС"].Value,0,30)
+				setwex("КР СВ НИЗ КРАС",0,30)
+				setwex("КР СВ ВЫС КРАС",0,30)
 			}
 
 			// если охранный кран не закрыт, а закрыты: входной, байпасный, выходной краны
-			if ((convertToInteger(Reps.Reps["КРАН ОХР КРАС"].Value) != convertToInteger(2)) && (convertToInteger(Reps.Reps["КРАН ВХОД КРАС"].Value) == convertToInteger(2))) && (convertToInteger(Reps.Reps["КРАН ВЫХ КРАС"].Value) == convertToInteger(2)) {
+			if (((val("КРАН ОХР КРАС")) != (2)) && ((val("КРАН ВХОД КРАС")) == (2))) && ((val("КРАН ВЫХ КРАС")) == (2)) {
 				// открыть свечной кран с низ стороны
-				setwex(&Reps.Reps["КР СВ НИЗ КРАС"].Value,0,30)
+				setwex("КР СВ НИЗ КРАС",0,30)
 			}
 		}
 
 		// переводим грс в режим по месту
-		SET(&Reps.Reps["КОМ РЕЖ3"].Value, 0)
-		time.Sleep((5*18) * time.Second)
+		PKG.UpdateVal("КОМ РЕЖ3", 0, true)
+		//fmt.Print("апдейт КОМ РЕЖ3")
+		time.Sleep((5) * time.Second)
 		dout[1]=0	// ком ао (возм причина)
 		dout[2]=0
 
-		aout[6]=int(time.Now().Unix())
+		aout[6]=float32(time.Now().Unix())
 	}
-
-	if front(&Reps.Reps["РЕЖИМ ГРС КРАС"].Value,9) {
+	
+	if front("РЕЖИМ ГРС КРАС",0)!=9 {
 		dout[3]=0
 	}
+	fmt.Println("конец мейн")
 
-}
-
-
-func ConsumeFromRabbitMq(Reps *SafeMap) {
-	//Conn := ConnRabbitMQConsume
-	ch, err := ConnRabbitMQConsume.Channel()
-	if err != nil {
-		fmt.Println("Ошибка открытия канала RabbitMQ ", err)
-	}
-
-	defer ch.Close()
-	args := amqp.Table{
-		"x-max-length": 1,
-		"x-overflow":   "reject-publish",
-	}
-	q, err := ch.QueueDeclare(
-		NameAlg, // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		args,    // arguments
-	)
-	if err != nil {
-		fmt.Println("Consumer Ошибка декларирования очереди RabbitMQ ", NameAlg+"Out", err)
-	}
-
-	err = ch.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-	if err != nil {
-		fmt.Println("Consumer Ошибка Qos RabbitMQ ", err)
-	}
-
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,  // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		args,   // args
-	)
-	if err != nil {
-		fmt.Println("Consumer Ошибка создания Consumer ", err)
-	}
-
-	var forever chan struct{}
-
-	if err == nil {
-		MessageHandler(msgs, Reps)
-	}
-	fmt.Println(" [*] Waiting for messages.")
-	<-forever
-}
-
-func MessageHandler(msgs <-chan amqp.Delivery, Reps *SafeMap) {
-	if Reps == nil {
-		fmt.Println("Reps is nil in MessageHandler")
-		return
-	}
-	for d := range msgs {
-		fmt.Println("Message received:", string(d.Body)) // Logging received messages
-		var data []Rep
-		err := json.Unmarshal(d.Body, &data)
-		if err != nil {
-			fmt.Println("Ошибка разбора JSON:", err)
-			continue
-		}
-		// ************ ЗАПИСЬ В ОБЩУЮ СТРУКТУРУ **********
-		Reps.Mu.Lock()
-		for _, inputVal := range data {
-			ConnectToRabit = true
-			repVal, exist := Reps.Reps[inputVal.Raper]
-			if exist {
-				fmt.Printf("Updating rep %s: %v -> %v\n", inputVal.Raper, repVal.Value, inputVal.Value) // Logging updates
-				repVal.Value = inputVal.Value
-				repVal.Time = inputVal.Time
-			} else {
-				fmt.Println("Adding new rep to map:", inputVal.Raper) // Logging new entries
-				Reps.Reps[inputVal.Raper] = &Rep{
-					Value:       inputVal.Value,
-					Time:        inputVal.Time,
-					Raper:       inputVal.Raper,
-					MEK_Address: inputVal.MEK_Address,
-					TypeParam:   inputVal.TypeParam,
-				}
-			}
-		}
-		Reps.Mu.Unlock()
-
-		//fmt.Println(Reps.Reps["КРАН ОХР КРАС"].Value)
-		fmt.Println("выполняю mainOutput")
-		// Выполняем основную логику обработки
-		fmt.Println(Reps)
-		mainOutput(Reps)
-		fmt.Println("готово")
-		//fmt.Println(Reps.Reps["КРАН ОХР КРАС"].Value)
-
-		fmt.Println("Updated Reps:", Reps)
-		// Отправляем измененные реперы обратно в RabbitMQ
-		//SendToRabbitMQ(Reps)
-		d.Ack(false)
-	}
-}
-
-
-// SendToRabbitMQ отправка Структуры в очередь по названию (для мэк)
-func SendToRabbitMQ(OutputMap *SafeMap) {
-
-	for {
-		OutputMap.Mu.Lock()
-		output := OutputMap.Reps
-		var outToRabbit = make([]OutToRabbitMQ, 0)
-		for key, _ := range output {
-			value := output[key]
-			if value.TimeOld != value.Time {
-				outToRabbit = append(outToRabbit, OutToRabbitMQ{value.MEK_Address, value.Raper, value.Value, value.TypeParam, value.Reliability, value.Time})
-				outVal, exist := OutputMap.Reps[key]
-				if exist {
-					outVal.TimeOld = outVal.Time
-					OutputMap.Reps[key] = outVal
-				}
-			}
-		}
-		OutputMap.Mu.Unlock()
-		if len(outToRabbit) > 0 {
-			body, err := json.Marshal(outToRabbit)
-			if err != nil {
-				fmt.Println("Ошибка При формировании JSON ", err)
-			}
-			//fmt.Println("______________________________________________________________________Outtorabbit_____________________________")
-			//fmt.Println(outToRabbit)
-			ch, err := ConnRabbitMQPublish.Channel()
-			if err != nil {
-				fmt.Println("Ошибка открытия канала RabbitMQ ", err)
-			}
-			args := amqp.Table{
-				"x-max-length": 1,
-				"x-overflow":   "reject-publish",
-			}
-			q, err := ch.QueueDeclare(
-				NameAlg+"Out", // name
-				false,         // durable
-				false,         // delete when unused
-				false,         // exclusive
-				false,         // no-wait
-				args,          // arguments
-			)
-			if err != nil {
-				fmt.Println("Failed to declare a queue ", err)
-
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-			err = ch.PublishWithContext(ctx,
-				"",     // exchange
-				q.Name, // routing key
-				false,  // mandatory
-				false,  // immediate
-				amqp.Publishing{
-					ContentType: "application/json",
-					Body:        body,
-				})
-			if err != nil {
-				fmt.Println("Ошибка отправки в очередь", err)
-			}
-			ch.Close()
-			cancel()
-			//fmt.Println(" [x] Отправил в очередь ", outToRabbit)
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-}
-
-
-// Function to publish a test message
-func publishTestMessage() {
-	ch, err := ConnRabbitMQPublish.Channel()
-	if err != nil {
-		fmt.Println("Ошибка открытия канала для отправки тестового сообщения RabbitMQ ", err)
-		return
-	}
-	defer ch.Close()
-
-	testData := map[string]Rep{
-		"КН АВОСТ КРАС": {MEK_Address: 1, Raper: "КН АВОСТ КРАС", Value: 150, TypeParam: "param1", Reliability: true, Time: time.Now()},
-		// Add more test data as needed
-	}
-
-	body, err := json.Marshal(testData)
-	if err != nil {
-		fmt.Println("Ошибка При формировании тестового JSON ", err)
-		return
-	}
-
-	args := amqp.Table{
-		"x-max-length": 1,
-		"x-overflow":   "reject-publish",
-	}
-	q, err := ch.QueueDeclare(
-		NameAlg, // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		args,    // arguments
-	)
-	if err != nil {
-		fmt.Println("Failed to declare a queue ", err)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	err = ch.PublishWithContext(ctx,
-		"",     // exchange
-		q.Name, // routing key
-		false,  // mandatory
-		false,  // immediate
-		amqp.Publishing{
-			ContentType: "application/json",
-			Body:        body,
-		})
-	if err != nil {
-		fmt.Println("Ошибка отправки тестового сообщения в очередь", err)
-	} else {
-		fmt.Println("Тестовое сообщение отправлено успешно")
-	}
 }
